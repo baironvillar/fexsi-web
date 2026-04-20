@@ -25,17 +25,22 @@
       <!-- Desktop Nav -->
       <nav class="hidden md:flex items-center gap-8">
         <a
-          href="#servicios"
+          href="/#servicios"
           class="text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors"
           >Servicios</a
         >
         <a
-          href="#proyectos"
+          href="/#nosotros"
+          class="text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors"
+          >Nosotros</a
+        >
+        <a
+          href="/#proyectos"
           class="text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors"
           >Proyectos</a
         >
         <a
-          href="#contacto"
+          href="/#contacto"
           class="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white transition-all bg-orange-600 rounded-lg hover:bg-orange-700 hover:shadow-lg hover:shadow-orange-600/20 hidden lg:inline-flex"
         >
           Cotizar Proyecto
@@ -74,17 +79,22 @@
   >
     <div class="px-4 py-4 space-y-2 flex flex-col">
       <a
-        href="#servicios"
+        href="/#servicios"
         class="mobile-link px-4 py-3 text-base font-medium text-slate-700 hover:text-orange-600 hover:bg-slate-50 rounded-lg"
         >Servicios</a
       >
       <a
-        href="#proyectos"
+        href="/#nosotros"
+        class="mobile-link px-4 py-3 text-base font-medium text-slate-700 hover:text-orange-600 hover:bg-slate-50 rounded-lg"
+        >Nosotros</a
+      >
+      <a
+        href="/#proyectos"
         class="mobile-link px-4 py-3 text-base font-medium text-slate-700 hover:text-orange-600 hover:bg-slate-50 rounded-lg"
         >Proyectos</a
       >
       <a
-        href="#contacto"
+        href="/#contacto"
         class="mobile-link px-4 py-3 text-base font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg text-center mt-4"
         >Cotizar Proyecto</a
       >
@@ -93,21 +103,28 @@
 </header>
 
 <script>
-  // Simple script to handle mobile menu toggle
-  const mobileBtn = document.getElementById("mobile-menu-btn");
-  const mobileMenu = document.getElementById("mobile-menu");
-  const links = document.querySelectorAll(".mobile-link");
+  function initHeaderMenu() {
+    const mobileBtn = document.getElementById("mobile-menu-btn");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const links = document.querySelectorAll(".mobile-link");
 
-  if (mobileBtn && mobileMenu) {
-    mobileBtn.addEventListener("click", () => {
-      mobileMenu.classList.toggle("hidden");
-    });
+    if (mobileBtn && mobileMenu) {
+      const newBtn = mobileBtn.cloneNode(true) as HTMLButtonElement;
+      mobileBtn.parentNode?.replaceChild(newBtn, mobileBtn);
 
-    // Close menu when clicking a link
-    links.forEach((link) => {
-      link.addEventListener("click", () => {
-        mobileMenu.classList.add("hidden");
+      newBtn.addEventListener("click", () => {
+        mobileMenu.classList.toggle("hidden");
       });
-    });
+
+      // Close menu when clicking a link
+      links.forEach((link) => {
+        link.addEventListener("click", () => {
+          mobileMenu.classList.add("hidden");
+        });
+      });
+    }
   }
+
+  initHeaderMenu();
+  document.addEventListener("astro:page-load", initHeaderMenu);
 </script>

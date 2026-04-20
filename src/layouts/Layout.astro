@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import "../styles/global.css";
 
 interface Props {
@@ -10,7 +11,7 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 ---
 
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="es">
 	<head>
 		<meta charset="UTF-8" />
 		<meta
@@ -22,6 +23,7 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<ClientRouter />
 
 		<!-- Google Fonts: Inter -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -32,8 +34,64 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 		/>
 	</head>
 	<body
-		class="font-sans antialiased text-slate-800 bg-slate-50 min-h-screen flex flex-col selection:bg-orange-500 selection:text-white"
+		class="font-sans antialiased text-slate-800 bg-slate-50 min-h-screen flex flex-col selection:bg-orange-500 selection:text-white overflow-x-hidden"
 	>
 		<slot />
+
+		<script>
+			function initScrollReveal() {
+				const observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (entry.isIntersecting) {
+								entry.target.classList.add("active");
+							}
+						});
+					},
+					{ threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+				);
+
+				document
+					.querySelectorAll(".reveal, .reveal-left, .reveal-right")
+					.forEach((el) => {
+						observer.observe(el);
+					});
+			}
+
+			// Ejecutar inicialización 
+			initScrollReveal();
+			
+			// Manejar smooth scroll manualmente para evitar conflictos con View Transitions al recargar o volver
+			function initSmoothScroll() {
+				document.querySelectorAll('a[href^="/#"], a[href^="#"]').forEach(anchor => {
+					// Prevenir que se vuelva a agregar el listener si Astro vuelve a ejecutar este script
+					anchor.removeEventListener('click', handleSmoothScroll);
+					anchor.addEventListener('click', handleSmoothScroll);
+				});
+			}
+
+			function handleSmoothScroll(this: HTMLElement, e: Event) {
+				const target = e.currentTarget as HTMLAnchorElement | null;
+				if (!target || !target.href) return;
+				
+				const targetUrl = new URL(target.href, window.location.origin);
+				if (targetUrl.pathname === window.location.pathname && targetUrl.hash) {
+					e.preventDefault();
+					const targetElement = document.querySelector(targetUrl.hash);
+					if (targetElement) {
+						targetElement.scrollIntoView({ behavior: 'smooth' });
+						history.pushState(null, '', targetUrl.hash);
+					}
+				}
+			}
+
+			initSmoothScroll();
+
+			// Re-ejecutar cuando naveguemos vía View Transitions / ClientRouter
+			document.addEventListener("astro:page-load", () => {
+				initScrollReveal();
+				initSmoothScroll();
+			});
+		</script>
 	</body>
 </html>

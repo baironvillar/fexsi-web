@@ -1,0 +1,250 @@
+---
+import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+
+export async function getStaticPaths() {
+  const projects = await getCollection("projects");
+  return projects.map((project: CollectionEntry<"projects">) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+type Props = {
+  project: CollectionEntry<"projects">;
+};
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+---
+
+<Layout title={`${project.data.title} | Fexsi SpA`}>
+  <Header />
+
+  <main class="pt-20 bg-slate-50 min-h-screen pb-24">
+    <!-- Project Hero -->
+    <div class="w-full h-96 relative">
+      <img
+        src={project.data.coverImage}
+        alt={project.data.title}
+        class="w-full h-full object-cover"
+      />
+      <div
+        class="absolute inset-0 bg-slate-900/60 flex flex-col justify-center items-center text-center px-4"
+      >
+        <span
+          class="text-orange-400 font-semibold tracking-wider uppercase text-sm mb-4"
+          >{project.data.category}
+        </span>
+        <h1 class="text-4xl md:text-6xl font-bold text-white max-w-4xl">
+          {project.data.title}
+        </h1>
+      </div>
+    </div>
+
+    <!-- Project Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <a
+        href="/#proyectos"
+        class="inline-flex items-center text-slate-500 hover:text-orange-600 mb-8 transition-colors"
+      >
+        <svg
+          class="w-5 h-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          ><path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Volver a proyectos
+      </a>
+
+      <div class="prose prose-lg prose-slate max-w-none">
+        <p class="text-xl text-slate-600 font-medium mb-8 leading-relaxed">
+          {project.data.description}
+        </p>
+        <Content />
+      </div>
+
+      <!-- Gallery -->
+      {
+        project.data.gallery && project.data.gallery.length > 0 && (
+          <div class="mt-16">
+            <h3 class="text-2xl font-bold text-slate-900 mb-6 pb-4 border-b border-slate-200">
+              Galería del Proyecto
+            </h3>
+            <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 scroll-smooth" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+              {project.data.gallery.map((image: string, index: number) => (
+                <button
+                  type="button"
+                  data-index={index}
+                  class="gallery-item flex-none w-[85%] sm:w-[45%] md:w-[40%] aspect-video overflow-hidden rounded-xl bg-slate-200 shadow-sm snap-center focus:outline-none focus:ring-4 focus:ring-orange-500 group relative cursor-pointer"
+                  aria-label={`Ver foto ${index + 1}`}
+                >
+                  <img
+                    src={image}
+                    alt={`Galería de ${project.data.title}`}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                    loading="lazy"
+                  />
+                  <!-- Overlay de expandir -->
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </main>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="fixed inset-0 z-[100] bg-slate-950/95 hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-300 backdrop-blur-sm" aria-modal="true" role="dialog">
+    <!-- Top Bar -->
+    <div class="absolute top-0 inset-x-0 p-4 sm:p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+      <div id="lightbox-counter" class="text-white/90 font-medium tracking-widest text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
+        1 / 1
+      </div>
+      <button id="lightbox-close" class="text-white/80 hover:text-white p-3 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Cerrar">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Navegación Prev -->
+    <button id="lightbox-prev" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 sm:p-4 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 z-10 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Foto anterior">
+      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+
+    <!-- Contenedor de la Imagen principal -->
+    <div class="relative w-full h-[85vh] flex items-center justify-center p-4 sm:p-12 mt-12 cursor-pointer" id="lightbox-track">
+      <img id="lightbox-img" src="" alt="Imagen ampliada" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 select-none" />
+      
+      <!-- Loading Spinner -->
+      <div id="lightbox-spinner" class="absolute inset-0 flex items-center justify-center z-[-1]">
+        <div class="w-12 h-12 border-4 border-slate-700 border-t-orange-500 rounded-full animate-spin"></div>
+      </div>
+    </div>
+
+    <!-- Navegación Next -->
+    <button id="lightbox-next" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 sm:p-4 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 z-10 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Foto siguiente">
+      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    const setupLightbox = () => {
+      const galleryItems = document.querySelectorAll('.gallery-item');
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+      const lightboxTrack = document.getElementById('lightbox-track');
+      const closeBtn = document.getElementById('lightbox-close');
+      const prevBtn = document.getElementById('lightbox-prev');
+      const nextBtn = document.getElementById('lightbox-next');
+      const counter = document.getElementById('lightbox-counter');
+      const spinner = document.getElementById('lightbox-spinner');
+
+      if (galleryItems.length > 0 && lightbox && lightboxImg) {
+        let currentImages: string[] = [];
+        let currentIndex = 0;
+
+        // Limpiar eventos anteriores si existe re-renderizado
+        const newLightboxImg = lightboxImg.cloneNode(true) as HTMLImageElement;
+        lightboxImg.parentNode?.replaceChild(newLightboxImg, lightboxImg);
+
+        galleryItems.forEach(item => {
+          const imgEl = item.querySelector('img');
+          if(imgEl && imgEl.src) currentImages.push(imgEl.src);
+        });
+
+        const updateLightbox = () => {
+          spinner?.classList.remove('hidden');
+          newLightboxImg.classList.add('opacity-0'); 
+          
+          newLightboxImg.src = currentImages[currentIndex];
+          if(counter){
+            counter.textContent = `${currentIndex + 1} / ${currentImages.length}`;
+          }
+        };
+
+        newLightboxImg.onload = () => {
+          spinner?.classList.add('hidden');
+          newLightboxImg.classList.remove('opacity-0');
+        };
+
+        const openLightbox = (index: number) => {
+          currentIndex = index;
+          updateLightbox();
+          lightbox.classList.remove('hidden');
+          void lightbox.offsetWidth;
+          lightbox.classList.remove('opacity-0');
+          document.body.style.overflow = 'hidden'; 
+        };
+
+        const closeLightboxHandler = () => {
+          lightbox.classList.add('opacity-0');
+          setTimeout(() => {
+            lightbox.classList.add('hidden');
+            document.body.style.overflow = '';
+          }, 300);
+        };
+
+        const goNext = (e?: Event) => {
+          e?.stopPropagation();
+          openLightbox((currentIndex + 1) % currentImages.length);
+        };
+        
+        const goPrev = (e?: Event) => {
+          e?.stopPropagation();
+          openLightbox((currentIndex - 1 + currentImages.length) % currentImages.length);
+        };
+
+        // Asignar nuevos eventos
+        galleryItems.forEach((btn, idx) => {
+          // Remover eventos previos clonando los botones no es necesario porque si pasamos de página
+          // el DOM es nuevo.
+          btn.addEventListener('click', () => openLightbox(idx));
+        });
+
+        closeBtn?.addEventListener('click', (e) => { e.stopPropagation(); closeLightboxHandler(); });
+        nextBtn?.addEventListener('click', goNext);
+        prevBtn?.addEventListener('click', goPrev);
+        
+        lightbox.addEventListener('click', (e) => {
+          if (e.target === lightbox || e.target === lightboxTrack || e.target === newLightboxImg) {
+            closeLightboxHandler();
+          }
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (lightbox.classList.contains('hidden')) return;
+          if (e.key === 'Escape') closeLightboxHandler();
+          if (e.key === 'ArrowRight') goNext();
+          if (e.key === 'ArrowLeft') goPrev();
+        });
+      }
+    };
+
+    // Inicializar al cargar el script
+    setupLightbox();
+    // Re-ejecutar si Astro usa View Transitions en cliente
+    document.addEventListener('astro:page-load', setupLightbox);
+  </script>
+
+  <Footer />
+</Layout>
