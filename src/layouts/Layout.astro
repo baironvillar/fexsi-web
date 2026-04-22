@@ -1,5 +1,5 @@
 ---
-import { ClientRouter } from 'astro:transitions';
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
 interface Props {
@@ -10,7 +10,7 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 	Astro.props;
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 	<head>
 		<meta charset="UTF-8" />
@@ -34,8 +34,17 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 		/>
 	</head>
 	<body
-		class="font-sans antialiased text-slate-800 bg-slate-50 min-h-screen flex flex-col selection:bg-orange-500 selection:text-white overflow-x-hidden"
+		class="font-sans antialiased text-slate-800 bg-slate-50 min-h-screen flex flex-col selection:bg-orange-500 selection:text-white overflow-x-hidden relative"
 	>
+		<!-- Background fijo para la parte blanca -->
+		<div class="fixed inset-0 z-[-1] pointer-events-none">
+			<img
+				src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop&fm=webp"
+				alt="Fondo Industrial"
+				class="w-full h-full object-cover opacity-[0.08] grayscale"
+			/>
+		</div>
+
 		<slot />
 
 		<script>
@@ -48,7 +57,7 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 							}
 						});
 					},
-					{ threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+					{ threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
 				);
 
 				document
@@ -58,29 +67,31 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 					});
 			}
 
-			// Ejecutar inicialización 
+			// Ejecutar inicialización
 			initScrollReveal();
-			
+
 			// Manejar smooth scroll manualmente para evitar conflictos con View Transitions al recargar o volver
 			function initSmoothScroll() {
-				document.querySelectorAll('a[href^="/#"], a[href^="#"]').forEach(anchor => {
-					// Prevenir que se vuelva a agregar el listener si Astro vuelve a ejecutar este script
-					anchor.removeEventListener('click', handleSmoothScroll);
-					anchor.addEventListener('click', handleSmoothScroll);
-				});
+				document
+					.querySelectorAll('a[href^="/#"], a[href^="#"]')
+					.forEach((anchor) => {
+						// Prevenir que se vuelva a agregar el listener si Astro vuelve a ejecutar este script
+						anchor.removeEventListener("click", handleSmoothScroll);
+						anchor.addEventListener("click", handleSmoothScroll);
+					});
 			}
 
 			function handleSmoothScroll(this: HTMLElement, e: Event) {
 				const target = e.currentTarget as HTMLAnchorElement | null;
 				if (!target || !target.href) return;
-				
+
 				const targetUrl = new URL(target.href, window.location.origin);
 				if (targetUrl.pathname === window.location.pathname && targetUrl.hash) {
 					e.preventDefault();
 					const targetElement = document.querySelector(targetUrl.hash);
 					if (targetElement) {
-						targetElement.scrollIntoView({ behavior: 'smooth' });
-						history.pushState(null, '', targetUrl.hash);
+						targetElement.scrollIntoView({ behavior: "smooth" });
+						history.pushState(null, "", targetUrl.hash);
 					}
 				}
 			}
