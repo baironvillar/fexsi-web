@@ -4,68 +4,115 @@ import { getCollection } from "astro:content";
 const projects = await getCollection("projects");
 ---
 
-<section id="proyectos" class="py-24 relative">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div
-      class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 reveal-left"
-    >
-      <div class="max-w-2xl">
-        <h2
-          class="text-orange-600 font-semibold tracking-wide uppercase text-sm mb-3"
-        >
-          Casos de Éxito
-        </h2>
-        <h3 class="text-3xl md:text-5xl font-bold text-slate-900">
-          Proyectos Destacados
-        </h3>
-      </div>
-      <a
-        href="#contacto"
-        class="inline-flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700 transition-colors"
-      >
-        Inicie su proyecto
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-        </svg>
-      </a>
-    </div>
+<section id="proyectos" class="section-pad relative bg-steel-50">
+	<div class="shell">
+		<div
+			class="reveal flex flex-col gap-6 border-b border-steel-200 pb-8 md:flex-row md:items-end md:justify-between"
+		>
+			<div class="max-w-2xl">
+				<h2
+					class="font-display text-3xl font-bold tracking-[-0.03em] text-steel-900 md:text-4xl"
+				>
+					Proyectos destacados
+				</h2>
+				<p class="mt-4 text-lg leading-relaxed text-steel-600">
+					Trabajos ejecutados en maestranza, calderería y terreno, con
+					procedimientos de control de calidad sobre cada unión crítica.
+				</p>
+			</div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {
-        projects.map(
-          (project: import("astro:content").CollectionEntry<"projects">, index: number) => (
-            <a
-              href={`/proyectos/${project.id}`}
-              class="group relative rounded-2xl overflow-hidden aspect-[4/5] cursor-pointer block"
-            >
-              <img
-                src={project.data.coverImage}
-                alt={project.data.title}
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
-              <div class="absolute bottom-0 left-0 p-8 w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                <p class="text-orange-400 font-medium text-sm mb-2">
-                  {project.data.category}
-                </p>
-                <h4 class="text-2xl font-bold text-white mb-2">
-                  {project.data.title}
-                </h4>
-                <div class="h-1 w-12 bg-orange-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100" />
-              </div>
-            </a>
-          )
-        )
-      }
-    </div>
-  </div>
+			<a
+				href="/#contacto"
+				class="group inline-flex shrink-0 items-center gap-3 text-sm font-semibold text-flame-800 transition-colors hover:text-flame-900"
+			>
+				Inicie su proyecto
+				<span
+					class="flex h-9 w-9 items-center justify-center rounded-sm border border-steel-300 transition-colors group-hover:border-flame-400 group-hover:bg-flame-700 group-hover:text-white"
+				>
+					<svg
+						class="h-4 w-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M5 12h14m-6-7 7 7-7 7"></path>
+					</svg>
+				</span>
+			</a>
+		</div>
+
+		<div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+			{
+				projects.map(
+					(
+						project: import("astro:content").CollectionEntry<"projects">,
+						index: number,
+					) => (
+						<a
+							href={`/proyectos/${project.id}`}
+							class={`group relative block overflow-hidden rounded-sm bg-steel-900 ${
+								index === 0
+									? "md:col-span-2 lg:row-span-2"
+									: ""
+							}`}
+							style={`aspect-ratio: ${index === 0 ? "16 / 11" : "3 / 2"}`}
+						>
+							<img
+								src={project.data.coverImage}
+								alt={project.data.title}
+								transition:name={`proyecto-${project.id}`}
+								loading="lazy"
+								decoding="async"
+								width={index === 0 ? 1200 : 700}
+								height={index === 0 ? 825 : 875}
+								class="h-full w-full object-cover transition-transform duration-700 ease-expo group-hover:scale-105"
+							/>
+							<div
+								transition:name={`proyecto-${project.id}-capa`}
+								class="absolute inset-0 bg-[linear-gradient(to_top,rgba(11,17,22,0.94)_0%,rgba(11,17,22,0.55)_38%,rgba(11,17,22,0.05)_78%)]"
+							/>
+
+							<div class="absolute inset-x-0 bottom-0 p-6 md:p-7">
+								<p class="tech-label text-flame-400">
+									{project.data.category}
+								</p>
+								<h3
+									class={`mt-3 font-display font-bold leading-snug text-white ${
+										index === 0 ? "text-2xl md:text-3xl" : "text-xl"
+									}`}
+								>
+									{project.data.title}
+								</h3>
+								<span class="mt-5 block h-px w-10 origin-left bg-flame-500 transition-all duration-500 ease-expo group-hover:w-24" />
+							</div>
+
+							<span
+								class="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-sm border border-white/25 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+								aria-hidden="true"
+							>
+								<svg
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="1.5"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M7 17 17 7M9 7h8v8"
+									/>
+								</svg>
+							</span>
+						</a>
+					),
+				)
+			}
+		</div>
+	</div>
 </section>

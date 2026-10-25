@@ -1,62 +1,520 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../**/*.{astro,html,js,ts,md,mdx}";
 
-/* Clases base para esconder la barra scroll horizontal */
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ==========================================================================
+   Sistema de diseño — Fexsi SpA
+   Paleta: acero (neutros fríos con tinte petróleo, tomado del logo) + flame
+   (naranja de seguridad de marca). Tipografía: Chivo (display) + Barlow (texto).
+   ========================================================================== */
+
+@theme {
+	/* --- Tipografía --- */
+	--font-sans: "Barlow", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "Chivo", "Barlow", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+	/* --- Color: se limpia la paleta por defecto para forzar consistencia --- */
+	--color-*: initial;
+	--color-white: #ffffff;
+	--color-black: #000000;
+
+	/* Acero: ground industrial, tinte petróleo heredado del logo */
+	--color-steel-50: #f4f6f7;
+	--color-steel-100: #e6eaec;
+	--color-steel-200: #d2d8dc;
+	--color-steel-300: #aeb8bf;
+	--color-steel-400: #7c8890;
+	--color-steel-500: #626c74;
+	--color-steel-600: #4a535a;
+	--color-steel-700: #374046;
+	--color-steel-800: #232b30;
+	--color-steel-900: #141b20;
+	--color-steel-950: #0b1116;
+	--color-steel-1000: #070c10;
+
+	/* Flame: naranja de seguridad de marca */
+	--color-flame-200: #ffd9b3;
+	--color-flame-300: #ffb877;
+	--color-flame-400: #ff9840;
+	--color-flame-500: #f97e16;
+	--color-flame-600: #e4650c;
+	--color-flame-700: #c24e08;
+	--color-flame-800: #9c3e08;
+	--color-flame-900: #7a310a;
+
+	/* --- Semánticos: estado de formulario (éxito / error) --- */
+	--color-success-50: #f0f9ec;
+	--color-success-800: #166534;
+	--color-danger-50: #fee2e2;
+	--color-danger-800: #991b1b;
+
+	/* --- Radios: documento técnico, no "app" redondeada --- */
+	--radius-xs: 2px;
+	--radius-sm: 3px;
+	--radius-md: 4px;
+	--radius-lg: 6px;
+	--radius-xl: 8px;
+	--radius-2xl: 10px;
+	--radius-3xl: 12px;
+	--radius-4xl: 16px;
+
+	/* --- Sombras: con desplazamiento y blur suave (nunca halo plano) --- */
+	--shadow-hairline: 0 1px 2px 0 rgb(11 17 22 / 0.06);
+	--shadow-lift: 0 12px 28px -14px rgb(11 17 22 / 0.22);
+	--shadow-panel: 0 28px 56px -28px rgb(11 17 22 / 0.34);
+
+	/* --- Curva de salida exponencial (nunca bounce/elastic) --- */
+	--ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+	/* --- Curva para movimientos espaciales (transiciones de vista) --- */
+	--ease-morph: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+	:root {
+		--focus-ring: var(--color-flame-600);
+	}
+
+	html {
+		/*
+		 * Sin `scroll-behavior: smooth` a propósito: afecta al scroll nativo del
+		 * navegador (restauración del historial y salto a un ancla de otra
+		 * página) y hace que la página recorra todo el contenido desde arriba.
+		 * El scroll suave de los anclos internos se aplica explícitamente en
+		 * Layout.astro con `scrollIntoView({ behavior: "smooth" })`.
+		 */
+		/* Compensa el header fijo al saltar a un ancla */
+		scroll-padding-top: 5.5rem;
+		-webkit-text-size-adjust: 100%;
+		scrollbar-color: var(--color-steel-400) var(--color-steel-100);
+		scrollbar-width: thin;
+	}
+
+	body {
+		font-family: var(--font-sans);
+		font-synthesis-weight: none;
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4 {
+		font-family: var(--font-display);
+		font-weight: 700;
+		letter-spacing: -0.022em;
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
+	/* Foco visible y consistente en toda la superficie */
+	:focus-visible {
+		outline: 2px solid var(--focus-ring);
+		outline-offset: 2px;
+	}
+
+	/* Superfices oscuras: anillo de foco claro */
+	.on-dark {
+		--focus-ring: var(--color-flame-400);
+	}
+
+	::selection {
+		background-color: var(--color-flame-700);
+		color: #ffffff;
+	}
+
+	::-webkit-scrollbar {
+		width: 11px;
+		height: 11px;
+	}
+
+	::-webkit-scrollbar-track {
+		background-color: var(--color-steel-100);
+	}
+
+	::-webkit-scrollbar-thumb {
+		background-color: var(--color-steel-400);
+		border: 3px solid var(--color-steel-100);
+		border-radius: 999px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background-color: var(--color-steel-500);
+	}
+}
+
+/* ==========================================================================
+   Utilidades propias
+   ========================================================================== */
+
+/* Carrusel horizontal sin barra de scroll visible */
 .hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+	-ms-overflow-style: none;
+	scrollbar-width: none;
 }
 
-/* Scroll Reveal Animations Premium */
-.reveal,
-.reveal-left,
-.reveal-right {
-  opacity: 0;
-  /* Transición "Premium": algo lenta pero muy fluida al final (cubic-bezier) */
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+.hide-scrollbar::-webkit-scrollbar {
+	display: none;
 }
 
-.reveal {
-  transform: translateY(30px);
+/* Contenedor de ancho máximo con canalón consistente.
+   Se usan propiedades físicas (padding-left/right) en vez de las lógicas
+   (padding-inline): universalmente soportadas y legibles por cualquier
+   inspector de CSS. */
+.shell {
+	width: 100%;
+	max-width: 80rem;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
 }
 
-.reveal-left {
-  transform: translateX(-30px);
+@media (min-width: 640px) {
+	.shell {
+		padding-left: 2rem;
+		padding-right: 2rem;
+	}
 }
 
-.reveal-right {
-  transform: translateX(30px);
+@media (min-width: 1024px) {
+	.shell {
+		padding-left: 3rem;
+		padding-right: 3rem;
+	}
 }
 
-/* Estado Final Activado */
-.reveal.active,
-.reveal-left.active,
-.reveal-right.active {
-  opacity: 1;
-  transform: translate(0, 0);
+/* Padding vertical de sección */
+.section-pad {
+	padding-top: 5rem;
+	padding-bottom: 5rem;
 }
 
-/* Staggering (Retrasos) para cascada de elementos */
-.delay-100 {
-  transition-delay: 100ms;
+@media (min-width: 768px) {
+	.section-pad {
+		padding-top: 7rem;
+		padding-bottom: 7rem;
+	}
 }
 
-.delay-200 {
-  transition-delay: 200ms;
+.section-pad-sm {
+	padding-top: 4rem;
+	padding-bottom: 4rem;
 }
 
-.delay-300 {
-  transition-delay: 300ms;
+@media (min-width: 768px) {
+	.section-pad-sm {
+		padding-top: 6rem;
+		padding-bottom: 6rem;
+	}
 }
 
-.delay-400 {
-  transition-delay: 400ms;
+/* Padding del bloque superior (hero) */
+.hero-pad {
+	padding-top: 8rem;
+	padding-bottom: 3.5rem;
 }
 
-.delay-500 {
-  transition-delay: 500ms;
+@media (min-width: 768px) {
+	.hero-pad {
+		padding-top: 9rem;
+		padding-bottom: 4rem;
+	}
+}
+
+.hero-band {
+	padding-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+	.hero-band {
+		padding-bottom: 2.5rem;
+	}
+}
+
+/* Rejilla de plano técnico: líneas finas de fondo, visibles pero discretas */
+.blueprint-grid {
+	background-image:
+		linear-gradient(
+			to right,
+			color-mix(in oklab, var(--color-steel-400) 14%, transparent) 1px,
+			transparent 1px
+		),
+		linear-gradient(
+			to bottom,
+			color-mix(in oklab, var(--color-steel-400) 14%, transparent) 1px,
+			transparent 1px
+		);
+	background-size: 4rem 4rem;
+}
+
+/* Marcas de corte de plano en las esquinas */
+.crop-mark {
+	position: relative;
+}
+
+.crop-mark::before,
+.crop-mark::after {
+	content: "";
+	position: absolute;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-color: color-mix(in oklab, var(--color-flame-500) 70%, transparent);
+	border-style: solid;
+	pointer-events: none;
+}
+
+.crop-mark::before {
+	top: -1px;
+	left: -1px;
+	border-width: 1px 0 0 1px;
+}
+
+.crop-mark::after {
+	right: -1px;
+	bottom: -1px;
+	border-width: 0 1px 1px 0;
+}
+
+/* Etiqueta técnica: sólo para datos, medidas y códigos reales */
+.tech-label {
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+/* Enlace con subrayado que se dibuja al pasar el cursor */
+.link-underline {
+	background-image: linear-gradient(currentColor, currentColor);
+	background-position: 0 100%;
+	background-repeat: no-repeat;
+	background-size: 0 1px;
+	transition: background-size 0.35s var(--ease-expo);
+}
+
+.link-underline:hover,
+.link-underline:focus-visible {
+	background-size: 100% 1px;
+}
+
+/* ==========================================================================
+   Scroll reveal — el contenido es visible si no hay JavaScript
+   ========================================================================== */
+
+.js .reveal,
+.js .reveal-left,
+.js .reveal-right {
+	opacity: 0;
+	transition:
+		opacity 0.7s var(--ease-expo),
+		transform 0.7s var(--ease-expo);
+	will-change: opacity, transform;
+}
+
+.js .reveal {
+	transform: translateY(24px);
+}
+
+.js .reveal-left {
+	transform: translateX(-24px);
+}
+
+.js .reveal-right {
+	transform: translateX(24px);
+}
+
+.js .reveal.is-active,
+.js .reveal-left.is-active,
+.js .reveal-right.is-active {
+	opacity: 1;
+	transform: translate(0, 0);
+}
+
+/* Retrasos escalonados para cascada */
+.js .delay-1 {
+	transition-delay: 80ms;
+}
+
+.js .delay-2 {
+	transition-delay: 160ms;
+}
+
+.js .delay-3 {
+	transition-delay: 240ms;
+}
+
+.js .delay-4 {
+	transition-delay: 320ms;
+}
+
+/* ==========================================================================
+   Cuerpo de artículo (markdown de proyectos) — sin depender de plugins
+   ========================================================================== */
+
+.article-body {
+	color: var(--color-steel-600);
+	font-size: 1.0625rem;
+	line-height: 1.75;
+	max-width: 68ch;
+}
+
+.article-body > * + * {
+	margin-top: 1.25rem;
+}
+
+.article-body h2 {
+	font-size: 1.5rem;
+	line-height: 1.25;
+	color: var(--color-steel-900);
+	margin-top: 2.5rem;
+}
+
+.article-body h3 {
+	font-size: 1.1875rem;
+	color: var(--color-steel-900);
+	margin-top: 2rem;
+}
+
+.article-body ul,
+.article-body ol {
+	padding-left: 1.25rem;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.article-body ul {
+	list-style: none;
+	padding-left: 0;
+}
+
+.article-body ul > li {
+	position: relative;
+	padding-left: 1.25rem;
+}
+
+.article-body ul > li::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.7em;
+	width: 0.5rem;
+	height: 1px;
+	background-color: var(--color-flame-600);
+}
+
+.article-body ol {
+	list-style: decimal;
+}
+
+.article-body strong {
+	color: var(--color-steel-900);
+	font-weight: 600;
+}
+
+.article-body a {
+	color: var(--color-flame-800);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+}
+
+.article-body a:hover {
+	color: var(--color-flame-900);
+	text-decoration-thickness: 2px;
+}
+
+/* ==========================================================================
+   Preferencia de movimiento reducido
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	.js .reveal,
+	.js .reveal-left,
+	.js .reveal-right {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* ==========================================================================
+   Transiciones de vista (Astro ClientRouter)
+   ========================================================================== */
+
+/*
+ * Astro anima el fundido con `astroFadeIn/Out`, cuyos keyframes llevan
+ * `mix-blend-mode: plus-lighter`: al superponerse la instantánea vieja y la
+ * nueva la imagen se lava y queda un fantasma brillante. El sitio usa un
+ * fundido plano en todas las instantáneas.
+ */
+@keyframes fexsi-fade-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes fexsi-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+/*
+ * La instantánea vieja de los grupos con nombre (las fotos de las fichas) no
+ * se dibuja. Si se dibuja, las fotos de las fichas que desaparecen quedan
+ * flotando sobre la página nueva y la foto compartida aparece duplicada,
+ * porque la ficha y la portada recortan la imagen de forma distinta. El grupo
+ * sigue animando su geometría: la foto simplemente aparece en la ficha y
+ * viaja hasta la portada.
+ */
+::view-transition-old(*) {
+	animation: none;
+	opacity: 0;
+}
+
+::view-transition-new(*) {
+	animation: 240ms var(--ease-expo) both fexsi-fade-in;
+}
+
+/* La raíz: la página vieja sale y la nueva entra. */
+::view-transition-old(root) {
+	animation: 160ms var(--ease-expo) both fexsi-fade-out;
+}
+
+::view-transition-new(root) {
+	animation: 240ms var(--ease-expo) both fexsi-fade-in;
+}
+
+/*
+ * El elemento compartido (la foto de la ficha de proyecto) se interpola hacia
+ * la portada del proyecto. Usa una curva más progresiva que la del sitio:
+ * `--ease-expo` arranca demasiado rápido para un movimiento de ese tamaño.
+ */
+::view-transition-group(*) {
+	animation-duration: 480ms;
+	animation-timing-function: var(--ease-morph);
 }

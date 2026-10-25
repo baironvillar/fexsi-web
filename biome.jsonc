@@ -1,0 +1,99 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/node_modules",
+			"!**/.astro",
+			// Instalación de Impeccable: archivos de terceros, no se tocan.
+			"!**/.claude",
+			"!**/.opencode",
+			// Lockfiles: los genera la herramienta, no se formatean.
+			"!**/bun.lock",
+			"!**/pnpm-lock.yaml"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineWidth": 100,
+		"lineEnding": "lf"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				"useConst": "error"
+			},
+			"suspicious": {
+				"noExplicitAny": "error",
+				"noVar": "error"
+			},
+			"complexity": {
+				// El bloque prefers-reduced-motion necesita !important para ganarle
+				// a las transiciones ya declaradas en la misma hoja.
+				"noImportantStyles": "off"
+			},
+			"a11y": {
+				// Biome no evalúa aria-label en <a> ni el aria-hidden de un ancestro
+				// al juzgar un <svg>: marca falsos positivos en enlaces de icono y en
+				// iconos decorativos. El contrato de accesibilidad vive en AGENTS.md.
+				"useAnchorContent": "off",
+				"noSvgWithoutTitle": "off"
+			}
+		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "always",
+			"trailingCommas": "all"
+		}
+	},
+	"css": {
+		"parser": {
+			// Para que @theme, @source y @utility no se confundan con error de sintaxis.
+			"tailwindDirectives": true
+		},
+		"formatter": {
+			"quoteStyle": "double"
+		}
+	},
+	"html": {
+		"experimentalFullSupportEnabled": true
+	},
+	"markdown": {
+		"parser": {
+			// Sin esto Biome trata el frontmatter YAML de las fichas de proyecto
+			// como markdown plano y le reescribe la sangría de las listas.
+			"frontmatter": true
+		}
+	},
+	"overrides": [
+		{
+			// El formateador HTML de Biome es experimental y reescribe el marcado de
+			// Astro (colapsa los atributos a una línea, quita la barra de cierre y
+			// desindenta los <script> inline). El lint sí se mantiene activo sobre
+			// .astro: ahí sí encuentra bugs reales, como botones sin type="button".
+			"includes": ["**/*.astro"],
+			"formatter": {
+				"enabled": false
+			}
+		}
+	]
+}

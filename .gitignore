@@ -22,3 +22,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# instalación local de Impeccable para agentes (incluye binarios por
+# plataforma de ~20 MB). Se reinstala con `npx impeccable install`.
+.claude/
+.opencode/
