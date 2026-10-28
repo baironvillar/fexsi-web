@@ -171,6 +171,12 @@ a la red.
 - `.gitattributes` fija `eol=lf` para todo el repo: no reintroducir CRLF ni borrar ese archivo
 - No commitear secretos. La `access_key` de Web3Forms en `src/components/Contact.astro` es una
   clave pública de servicio, no un secreto: no la trates como una, pero no la muevas sin avisar.
+- El formulario usa los **nombres reservados** de Web3Forms: `name`, `email`, `message`, `subject`,
+  `from_name`, `access_key` y `botcheck` (trampa de bots). Si un campo se renombra a otro idioma
+  (`Nombre`, `Mensaje`), Web3Forms lo treats como campo suelto y **deja de fijar el "responder"** del
+  correo. "Empresa" sí es un campo propio: se manda tal cual y aparece en el cuerpo del correo.
+- `api.web3forms.com` está detrás de un desafío anti-bot de Cloudflare: solo pasa desde un navegador
+  real. Una prueba con `curl`/`Invoke-WebRequest` recibe un 403 con HTML, no un error del formulario.
 
 ## Contenido
 

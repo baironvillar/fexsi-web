@@ -9,6 +9,8 @@
  *   C. Formulario: envío exitoso (fetch simulado, sin salir a la red)
  *   D. Formulario: error de conexión (fetch simulado)
  *   D2. Formulario: respuesta 500 del servidor (fetch simulada)
+ *   D3. Formulario: validación antes de enviar (no sale nada a la red)
+ *   D4. Formulario: payload con los nombres reservados de Web3Forms
  *   E. Lightbox de galería
  *   F. Menú móvil (390x844): apertura, cierre, Escape, clic en enlace
  *   G. Menú móvil sin JavaScript: la navegación sigue disponible
@@ -198,6 +200,64 @@ const SUBMIT_FORM = (mode) => `(async () => {
   return out;
 })()`;
 
+/** Envía el formulario vacío: no debe salir ninguna petición a la red. */
+const SUBMIT_FORM_EMPTY = `(async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const originalFetch = window.fetch;
+  window.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (!url.includes('web3forms.com')) return originalFetch(input, init);
+    window.__mockCalled = (window.__mockCalled || 0) + 1;
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  const form = document.getElementById('contact-form');
+  form.querySelector('#name').value = '';
+  form.querySelector('#email').value = '';
+  form.querySelector('#message').value = '';
+  form.requestSubmit();
+  await wait(1200);
+  const status = document.getElementById('form-status');
+  const out = {
+    text: status.textContent.trim(),
+    hiddenClass: status.classList.contains('hidden'),
+    mockCalls: window.__mockCalled || 0,
+    nameInvalid: form.querySelector('#name').getAttribute('aria-invalid'),
+    emailInvalid: form.querySelector('#email').getAttribute('aria-invalid'),
+    messageInvalid: form.querySelector('#message').getAttribute('aria-invalid'),
+    focused: document.activeElement ? document.activeElement.id : null,
+    buttonText: document.getElementById('button-text').textContent.trim(),
+  };
+  window.fetch = originalFetch;
+  return out;
+})()`;
+
+/** Captura el payload real que se manda a Web3Forms. */
+const SUBMIT_FORM_PAYLOAD = `(async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const originalFetch = window.fetch;
+  window.__payload = null;
+  window.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (!url.includes('web3forms.com')) return originalFetch(input, init);
+    window.__payload = { url, body: init && init.body ? JSON.parse(init.body) : null };
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  const form = document.getElementById('contact-form');
+  form.querySelector('#name').value = 'Prueba Local';
+  form.querySelector('#company').value = 'Empresa de prueba';
+  form.querySelector('#email').value = 'prueba@example.cl';
+  form.querySelector('#message').value = 'Mensaje de prueba.';
+  form.requestSubmit();
+  await wait(1200);
+  const out = { payload: window.__payload };
+  window.fetch = originalFetch;
+  return out;
+})()`;
+
 try {
 	await waitForDevtools();
 
@@ -372,6 +432,66 @@ try {
 			"el formulario NO se resetea en error",
 			result.nameValue === "Prueba Local",
 			`name="${result.nameValue}"`,
+		);
+		ws.close();
+	}
+
+	// ---------- D3. Formulario: validación antes de enviar ----------
+	console.log("\n== D3. Formulario: validación y payload real ==\n");
+	{
+		const { cdp, ws } = await openTab(`${base}/`);
+		const vacio = await cdp.evaluate(SUBMIT_FORM_EMPTY);
+		console.log("formulario vacío:", JSON.stringify(vacio));
+		assert(
+			"el formulario vacío no manda nada a la red",
+			vacio.mockCalls === 0,
+			`peticiones=${vacio.mockCalls}`,
+		);
+		assert(
+			"el formulario vacío avisa qué falta",
+			vacio.text.includes("Complete") && vacio.hiddenClass === false,
+			`texto="${vacio.text}"`,
+		);
+		assert(
+			"los campos con problema quedan marcados",
+			vacio.nameInvalid === "true" &&
+				vacio.emailInvalid === "true" &&
+				vacio.messageInvalid === "true",
+			`name=${vacio.nameInvalid} email=${vacio.emailInvalid} message=${vacio.messageInvalid}`,
+		);
+		assert(
+			"el foco va al primer campo con problema",
+			vacio.focused === "name",
+			`foco=${vacio.focused}`,
+		);
+		ws.close();
+	}
+
+	// ---------- D4. Formulario: payload con los nombres de Web3Forms ----------
+	{
+		const { cdp, ws } = await openTab(`${base}/`);
+		const conDatos = await cdp.evaluate(SUBMIT_FORM_PAYLOAD);
+		const body = conDatos.payload ? conDatos.payload.body : null;
+		console.log("payload:", JSON.stringify(body));
+		assert(
+			"el envío usa los nombres reservados de Web3Forms",
+			body?.name && body.email && body.message && body.access_key && body.subject && body.from_name,
+			`claves=${body ? Object.keys(body).join(",") : "sin body"}`,
+		);
+		assert(
+			"el correo del visitante va en 'email' (para poder responder)",
+			body && body.email === "prueba@example.cl",
+			`email=${body ? body.email : "-"}`,
+		);
+		assert(
+			"la empresa se envía como campo propio",
+			body && body.Empresa === "Empresa de prueba",
+			`Empresa=${body ? body.Empresa : "-"}`,
+		);
+		assert(
+			"la trampa para bots no viaja en el payload",
+			body && body.botcheck === undefined,
+			`botcheck=${body ? String(body.botcheck) : "-"}`,
 		);
 		ws.close();
 	}

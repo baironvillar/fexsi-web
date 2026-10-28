@@ -98,7 +98,8 @@ const datosContacto = [
 							name="access_key"
 							value="30b97354-2f06-4bab-baa2-5c7e688fba15"
 						/>
-						<input type="hidden" id="subject" name="subject" value="Mensaje desde Fexsi.cl" />
+						<input type="hidden" name="subject" value="Mensaje desde Fexsi.cl" />
+						<input type="hidden" name="from_name" value="Fexsi SpA - Sitio web" />
 						<input type="checkbox" name="botcheck" class="hidden" />
 
 						<div class="grid gap-5 sm:grid-cols-2">
@@ -109,11 +110,11 @@ const datosContacto = [
 								<input
 									type="text"
 									id="name"
-									name="Nombre"
+									name="name"
 									autocomplete="name"
 									required
 									placeholder="Juan Pérez"
-									class="mt-2 h-12 w-full rounded-sm border border-steel-400 bg-white px-4 text-[0.95rem] text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600"
+									class="mt-2 h-12 w-full rounded-sm border border-steel-400 bg-white px-4 text-[0.95rem] text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 aria-invalid:border-danger-800"
 								/>
 							</div>
 							<div>
@@ -138,11 +139,11 @@ const datosContacto = [
 							<input
 								type="email"
 								id="email"
-								name="Email"
+								name="email"
 								autocomplete="email"
 								required
 								placeholder="correo@empresa.cl"
-								class="mt-2 h-12 w-full rounded-sm border border-steel-400 bg-white px-4 text-[0.95rem] text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600"
+								class="mt-2 h-12 w-full rounded-sm border border-steel-400 bg-white px-4 text-[0.95rem] text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 aria-invalid:border-danger-800"
 							/>
 						</div>
 
@@ -152,11 +153,11 @@ const datosContacto = [
 							</label>
 							<textarea
 								id="message"
-								name="Mensaje"
+								name="message"
 								required
 								rows="5"
 								placeholder="Describa su proyecto o necesidad…"
-								class="mt-2 w-full resize-y rounded-sm border border-steel-400 bg-white px-4 py-3 text-[0.95rem] leading-relaxed text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600"
+								class="mt-2 w-full resize-y rounded-sm border border-steel-400 bg-white px-4 py-3 text-[0.95rem] leading-relaxed text-steel-900 placeholder:text-steel-500 transition-colors focus:border-flame-600 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 aria-invalid:border-danger-800"
 							></textarea>
 						</div>
 
@@ -236,13 +237,51 @@ const datosContacto = [
 				);
 			};
 
+			// `novalidate` desactiva la validación nativa: aquí se hace a mano
+			// para poder avisar con el mismo estilo del sitio y mover el foco
+			// al primer campo con problema.
+			const nombre = form.querySelector<HTMLInputElement>("#name");
+			const correo = form.querySelector<HTMLInputElement>("#email");
+			const mensaje = form.querySelector<HTMLTextAreaElement>("#message");
+
+			const marcar = (campo: HTMLElement | null, invalido: boolean) => {
+				if (!campo) return;
+				campo.setAttribute("aria-invalid", invalido ? "true" : "false");
+			};
+
+			const faltan: string[] = [];
+			if (!nombre?.value.trim()) faltan.push("el nombre");
+			if (!mensaje?.value.trim()) faltan.push("el mensaje");
+			const correoTexto = correo?.value.trim() ?? "";
+			if (!correoTexto) {
+				faltan.push("el correo electrónico");
+			} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correoTexto)) {
+				faltan.push("un correo electrónico válido");
+			}
+
+			marcar(nombre, !nombre?.value.trim());
+			marcar(correo, !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correoTexto));
+			marcar(mensaje, !mensaje?.value.trim());
+
+			if (faltan.length > 0) {
+				const lista = faltan.join(", ").replace(/,([^,]*)$/, " y$1");
+				setStatus(`Complete ${lista} antes de enviar el mensaje.`, "error");
+				const primero = !nombre?.value.trim()
+					? nombre
+					: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correoTexto)
+						? correo
+						: mensaje;
+				primero?.focus();
+				return;
+			}
+
 			submitButton.disabled = true;
 			buttonText.textContent = "Enviando…";
 			spinner.classList.remove("hidden");
 			statusEl.classList.add("hidden");
 
 			const formData = new FormData(form);
-			const emailValue = formData.get("Email") || "Contacto";
+			const emailValue = formData.get("email") || "Contacto";
 			formData.set("subject", `Mensaje desde Fexsi.cl - ${emailValue}`);
 
 			try {
@@ -255,13 +294,21 @@ const datosContacto = [
 					body: JSON.stringify(Object.fromEntries(formData)),
 				});
 
-				if (response.status === 200) {
+				// Web3Forms responde 200 con { success: false } cuando el envío
+				// se rechaza, así que el estado HTTP solo no alcanza.
+				const resultado = await response.json().catch(() => null);
+
+				if (response.ok && resultado?.success) {
 					setStatus(
 						"¡Mensaje enviado con éxito! Nos pondremos en contacto pronto.",
 						"ok",
 					);
 					form.reset();
+					marcar(nombre, false);
+					marcar(correo, false);
+					marcar(mensaje, false);
 				} else {
+					console.error("Web3Forms:", response.status, resultado);
 					setStatus(
 						"Hubo un error al enviar el mensaje. Por favor intente más tarde.",
 						"error",
