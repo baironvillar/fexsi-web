@@ -167,6 +167,14 @@ a la red.
 ## Git
 
 - Rama por defecto `main`; crear rama antes de cualquier cambio sizeable
+- **Despliegue**: el proyecto de Vercel es `fexsi-web` (equipo `smv-team`). `main` es la rama de
+  producción y publica en `https://fexsi-web-smv-team.vercel.app/`. Los despliegues de rama salen
+  en `fexsi-web-git-<rama>-smv-team.vercel.app` y **están detrás del login de Vercel** (protección de
+  despliegue): desde fuera se ve la pantalla "Login – Vercel", no el sitio. Para revisar una rama
+  hay que probarla en local, no por la URL de preview.
+- `fexsi.cl` **no** está conectado a este proyecto de Vercel: hoy responde con la página de prueba
+  de CentOS-WebPanel. Para ponerlo en línea hay que agregar el dominio en Vercel
+  (Settings → Domains) y apuntar el DNS.
 - Commits convencionales: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
 - `.gitattributes` fija `eol=lf` para todo el repo: no reintroducir CRLF ni borrar ese archivo
 - No commitear secretos. La `access_key` de Web3Forms en `src/components/Contact.astro` es una
