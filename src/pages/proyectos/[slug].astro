@@ -1,250 +1,436 @@
 ---
-import { getCollection, render } from "astro:content";
 import type { CollectionEntry } from "astro:content";
-import Layout from "../../layouts/Layout.astro";
-import Header from "../../components/Header.astro";
+import { getCollection, render } from "astro:content";
 import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import Layout from "../../layouts/Layout.astro";
+import { optimizarFoto } from "../../lib/images";
 
 export async function getStaticPaths() {
-  const projects = await getCollection("projects");
-  return projects.map((project: CollectionEntry<"projects">) => ({
-    params: { slug: project.id },
-    props: { project },
-  }));
+	const projects = await getCollection("projects");
+	return projects.map((project: CollectionEntry<"projects">) => ({
+		params: { slug: project.id },
+		props: { project },
+	}));
 }
 
 type Props = {
-  project: CollectionEntry<"projects">;
+	project: CollectionEntry<"projects">;
 };
 
 const { project } = Astro.props;
 const { Content } = await render(project);
+
+// La portada ocupa todo el ancho: se prioriza y se sirve en varios anchos.
+const portada = await optimizarFoto(project.data.coverImage, {
+	anchos: [800, 1280, 1600],
+	sizes: "100vw",
+	priority: true,
+});
+
+const galeria = await Promise.all(
+	(project.data.gallery ?? []).map(async (item, index) => ({
+		index,
+		alt: item.alt,
+		foto: await optimizarFoto(item.image, {
+			anchos: [360, 720, 1200],
+			sizes: "(min-width: 1024px) 474px, (min-width: 768px) 40vw, (min-width: 640px) 45vw, 85vw",
+		}),
+	})),
+);
 ---
 
-<Layout title={`${project.data.title} | Fexsi SpA`}>
-  <Header />
+<Layout
+	title={`${project.data.title} | Fexsi SpA`}
+	description={project.data.description}
+>
+	<Header />
 
-  <main class="pt-20 bg-slate-50 min-h-screen pb-24">
-    <!-- Project Hero -->
-    <div class="w-full h-96 relative">
-      <img
-        src={project.data.coverImage}
-        alt={project.data.title}
-        class="w-full h-full object-cover"
-      />
-      <div
-        class="absolute inset-0 bg-slate-900/60 flex flex-col justify-center items-center text-center px-4"
-      >
-        <span
-          class="text-orange-400 font-semibold tracking-wider uppercase text-sm mb-4"
-          >{project.data.category}
-        </span>
-        <h1 class="text-4xl md:text-6xl font-bold text-white max-w-4xl">
-          {project.data.title}
-        </h1>
-      </div>
-    </div>
+	<main class="bg-steel-50 pt-16 md:pt-20">
+		<!-- Portada del proyecto -->
+		<div class="relative h-[52vh] min-h-80 overflow-hidden bg-steel-950">
+			<img
+				src={portada.src}
+				srcset={portada.srcset}
+				sizes={portada.sizes}
+				alt={project.data.coverAlt}
+				transition:name={`proyecto-${project.id}`}
+				loading={portada.loading}
+				decoding={portada.decoding}
+				fetchpriority={portada.fetchpriority}
+				width={portada.width}
+				height={portada.height}
+				class="h-full w-full object-cover"
+			/>
+			<div
+				transition:name={`proyecto-${project.id}-capa`}
+				class="absolute inset-0 bg-[linear-gradient(to_top,rgba(11,17,22,0.95)_0%,rgba(11,17,22,0.55)_55%,rgba(11,17,22,0.4)_100%)]"
+			>
+			</div>
 
-    <!-- Project Content -->
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
-      <a
-        href="/#proyectos"
-        class="inline-flex items-center text-slate-500 hover:text-orange-600 mb-8 transition-colors"
-      >
-        <svg
-          class="w-5 h-5 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          ><path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-        </svg>
-        Volver a proyectos
-      </a>
+			<div class="shell absolute inset-x-0 bottom-0 pb-10">
+				<a
+					href="/#proyectos"
+					class="link-underline inline-flex items-center gap-2 text-sm font-semibold text-steel-300 transition-colors hover:text-white"
+				>
+					<svg
+						class="h-4 w-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M19 12H5m6 7-7-7 7-7"></path>
+					</svg>
+					Volver a proyectos
+				</a>
 
-      <div class="prose prose-lg prose-slate max-w-none">
-        <p class="text-xl text-slate-600 font-medium mb-8 leading-relaxed">
-          {project.data.description}
-        </p>
-        <Content />
-      </div>
+				<h1
+					class="mt-4 max-w-3xl font-display text-3xl font-extrabold leading-[1.08] tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl"
+				>
+					{project.data.title}
+				</h1>
+			</div>
+		</div>
 
-      <!-- Gallery -->
-      {
-        project.data.gallery && project.data.gallery.length > 0 && (
-          <div class="mt-16">
-            <h3 class="text-2xl font-bold text-slate-900 mb-6 pb-4 border-b border-slate-200">
-              Galería del Proyecto
-            </h3>
-            <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 scroll-smooth" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
-              {project.data.gallery.map((image: string, index: number) => (
-                <button
-                  type="button"
-                  data-index={index}
-                  class="gallery-item flex-none w-[85%] sm:w-[45%] md:w-[40%] aspect-video overflow-hidden rounded-xl bg-slate-200 shadow-sm snap-center focus:outline-none focus:ring-4 focus:ring-orange-500 group relative cursor-pointer"
-                  aria-label={`Ver foto ${index + 1}`}
-                >
-                  <img
-                    src={image}
-                    alt={`Galería de ${project.data.title}`}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
-                    loading="lazy"
-                  />
-                  <!-- Overlay de expandir -->
-                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      }
-    </div>
-  </main>
+		<!-- Contenido -->
+		<div class="shell section-pad-sm">
+			<div class="grid gap-14 lg:grid-cols-12 lg:gap-16">
+				<article class="lg:col-span-7">
+					<p class="border-l border-steel-300 pl-5 text-xl leading-relaxed font-medium text-steel-700">
+						{project.data.description}
+					</p>
 
-  <!-- Lightbox Modal -->
-  <div id="lightbox" class="fixed inset-0 z-[100] bg-slate-950/95 hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-300 backdrop-blur-sm" aria-modal="true" role="dialog">
-    <!-- Top Bar -->
-    <div class="absolute top-0 inset-x-0 p-4 sm:p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
-      <div id="lightbox-counter" class="text-white/90 font-medium tracking-widest text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
-        1 / 1
-      </div>
-      <button id="lightbox-close" class="text-white/80 hover:text-white p-3 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Cerrar">
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+					<div class="article-body mt-10">
+						<Content />
+					</div>
+				</article>
 
-    <!-- Navegación Prev -->
-    <button id="lightbox-prev" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 sm:p-4 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 z-10 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Foto anterior">
-      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
+				<aside class="lg:col-span-5">
+					<div class="lg:sticky lg:top-28">
+						<div class="border-t border-steel-300 pt-6">
+							<h2 class="tech-label text-steel-500">Ficha del proyecto</h2>
+							<dl class="mt-5 grid gap-5">
+								<div>
+									<dt class="text-sm font-semibold text-steel-900">Área</dt>
+									<dd class="mt-1 text-sm text-steel-600">
+										{project.data.category}
+									</dd>
+								</div>
+								<div>
+									<dt class="text-sm font-semibold text-steel-900">Cliente</dt>
+									<dd class="mt-1 text-sm text-steel-600">Sector minero e industrial</dd>
+								</div>
+								<div>
+									<dt class="text-sm font-semibold text-steel-900">Ubicación</dt>
+									<dd class="mt-1 text-sm text-steel-600">Antofagasta, Chile</dd>
+								</div>
+							</dl>
+						</div>
 
-    <!-- Contenedor de la Imagen principal -->
-    <div class="relative w-full h-[85vh] flex items-center justify-center p-4 sm:p-12 mt-12 cursor-pointer" id="lightbox-track">
-      <img id="lightbox-img" src="" alt="Imagen ampliada" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 select-none" />
-      
-      <!-- Loading Spinner -->
-      <div id="lightbox-spinner" class="absolute inset-0 flex items-center justify-center z-[-1]">
-        <div class="w-12 h-12 border-4 border-slate-700 border-t-orange-500 rounded-full animate-spin"></div>
-      </div>
-    </div>
+						<a
+							href="/#contacto"
+							class="mt-8 inline-flex h-12 w-full items-center justify-center rounded-sm bg-flame-700 px-6 text-base font-semibold text-white transition-colors duration-200 hover:bg-flame-800"
+						>
+							Solicitar cotización
+						</a>
+					</div>
+				</aside>
+			</div>
 
-    <!-- Navegación Next -->
-    <button id="lightbox-next" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 sm:p-4 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all hover:scale-105 z-10 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Foto siguiente">
-      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
-  </div>
+			<!-- Galería -->
+			{
+				galeria.length > 0 && (
+					<section class="mt-20 border-t border-steel-200 pt-12 md:mt-24">
+						<h2 class="font-display text-2xl font-bold tracking-[-0.02em] text-steel-900 md:text-3xl">
+							Galería del proyecto
+						</h2>
+						<div class="hide-scrollbar mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+							{galeria.map(({ foto, alt, index }) => (
+								<button
+									type="button"
+									data-index={index}
+									data-full={foto.src}
+									class="group relative aspect-video w-[85%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-sm bg-steel-200 shadow-hairline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 sm:w-[45%] md:w-[40%]"
+									aria-label={`Ampliar foto ${index + 1} de ${project.data.title}`}
+								>
+									<img
+										src={foto.src}
+										srcset={foto.srcset}
+										sizes={foto.sizes}
+										alt={alt}
+										loading={foto.loading}
+										decoding={foto.decoding}
+										width={foto.width}
+										height={foto.height}
+										class="pointer-events-none h-full w-full object-cover transition-transform duration-500 ease-expo group-hover:scale-105"
+									/>
+									<span class="absolute inset-0 flex items-center justify-center bg-steel-950/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+										<svg
+											class="h-9 w-9 text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="1.5"
+											aria-hidden="true"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+											/>
+										</svg>
+									</span>
+								</button>
+							))}
+						</div>
+					</section>
+				)
+			}
 
-  <script>
-    const setupLightbox = () => {
-      const galleryItems = document.querySelectorAll('.gallery-item');
-      const lightbox = document.getElementById('lightbox');
-      const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
-      const lightboxTrack = document.getElementById('lightbox-track');
-      const closeBtn = document.getElementById('lightbox-close');
-      const prevBtn = document.getElementById('lightbox-prev');
-      const nextBtn = document.getElementById('lightbox-next');
-      const counter = document.getElementById('lightbox-counter');
-      const spinner = document.getElementById('lightbox-spinner');
+			<!-- Video de proceso -->
+			{
+				project.data.video && (
+					<section class="mt-20 border-t border-steel-200 pt-12 md:mt-24">
+						<h2 class="font-display text-2xl font-bold tracking-[-0.02em] text-steel-900 md:text-3xl">
+							Proceso en taller
+						</h2>
+						<figure class="mt-8">
+							<video
+								class="mx-auto max-h-[70vh] w-auto max-w-full rounded-sm bg-steel-950 object-contain shadow-hairline"
+								controls
+								preload="metadata"
+								playsinline
+							>
+								<source src={project.data.video} type="video/mp4" />
+								<track
+									kind="captions"
+									src={project.data.videoCaptions}
+									srclang="es"
+									label="Español"
+									default
+								/>
+								<track
+									kind="descriptions"
+									src={project.data.videoDescriptions}
+									srclang="es"
+									label="Descripción en español"
+								/>
+								<p class="p-6 text-sm text-steel-200">
+									Tu navegador no puede reproducir este video.{" "}
+									<a class="link-underline" href={project.data.video} download>
+										Descárgalo aquí
+									</a>
+									.
+								</p>
+							</video>
+							<figcaption class="mx-auto mt-4 max-w-sm text-sm text-steel-600">
+								Cesta filtrante de acero inoxidable con chapa perforada, probada dentro de
+								su carcasa.
+							</figcaption>
+						</figure>
+					</section>
+				)
+			}
+		</div>
+	</main>
 
-      if (galleryItems.length > 0 && lightbox && lightboxImg) {
-        let currentImages: string[] = [];
-        let currentIndex = 0;
+	<!-- Lightbox -->
+	<div
+		id="lightbox"
+		class="fixed inset-0 z-[100] hidden flex-col items-center justify-center bg-steel-950/95 opacity-0 backdrop-blur-sm transition-opacity duration-300"
+		role="dialog"
+		aria-modal="true"
+		aria-label={`Galería de ${project.data.title}`}
+	>
+		<div
+			class="absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-[linear-gradient(to_bottom,rgba(0,0,0,0.55),transparent)] p-4 sm:p-6"
+		>
+			<span
+				id="lightbox-counter"
+				class="tech-label rounded-sm bg-steel-950/70 px-3 py-1.5 text-steel-200 backdrop-blur-md"
+			>
+				1 / 1
+			</span>
+			<button
+				type="button"
+				id="lightbox-close"
+				class="flex h-11 w-11 items-center justify-center rounded-sm bg-steel-950/70 text-steel-300 backdrop-blur-md transition-colors hover:bg-steel-950 hover:text-white"
+				aria-label="Cerrar galería"
+			>
+				<svg
+					class="h-6 w-6"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="1.5"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M6 18 18 6M6 6l12 12"></path>
+				</svg>
+			</button>
+		</div>
 
-        // Limpiar eventos anteriores si existe re-renderizado
-        const newLightboxImg = lightboxImg.cloneNode(true) as HTMLImageElement;
-        lightboxImg.parentNode?.replaceChild(newLightboxImg, lightboxImg);
+		<button
+			type="button"
+			id="lightbox-prev"
+			class="absolute left-2 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-sm bg-steel-950/70 text-steel-300 backdrop-blur-md transition-colors hover:text-white sm:left-6"
+			aria-label="Foto anterior"
+		>
+			<svg
+				class="h-7 w-7"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="1.5"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"
+				></path>
+			</svg>
+		</button>
 
-        galleryItems.forEach(item => {
-          const imgEl = item.querySelector('img');
-          if(imgEl && imgEl.src) currentImages.push(imgEl.src);
-        });
+		<div
+			class="relative mt-16 flex h-[80vh] w-full items-center justify-center p-4 sm:p-12"
+			id="lightbox-track"
+		>
+			<div
+				id="lightbox-spinner"
+				class="absolute inset-0 hidden items-center justify-center"
+			>
+				<div
+					class="h-12 w-12 animate-spin rounded-full border-4 border-steel-700 border-t-flame-500"
+				>
+				</div>
+			</div>
+		</div>
 
-        const updateLightbox = () => {
-          spinner?.classList.remove('hidden');
-          newLightboxImg.classList.add('opacity-0'); 
-          
-          newLightboxImg.src = currentImages[currentIndex];
-          if(counter){
-            counter.textContent = `${currentIndex + 1} / ${currentImages.length}`;
-          }
-        };
+		<button
+			type="button"
+			id="lightbox-next"
+			class="absolute right-2 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-sm bg-steel-950/70 text-steel-300 backdrop-blur-md transition-colors hover:text-white sm:right-6"
+			aria-label="Foto siguiente"
+		>
+			<svg
+				class="h-7 w-7"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="1.5"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"
+				></path>
+			</svg>
+		</button>
+	</div>
 
-        newLightboxImg.onload = () => {
-          spinner?.classList.add('hidden');
-          newLightboxImg.classList.remove('opacity-0');
-        };
+	<script>
+		function setupLightbox() {
+			const galleryItems = document.querySelectorAll<HTMLElement>(".group[data-index]");
+			const lightbox = document.getElementById("lightbox");
+			const track = document.getElementById("lightbox-track");
+			const closeBtn = document.getElementById("lightbox-close");
+			const prevBtn = document.getElementById("lightbox-prev");
+			const nextBtn = document.getElementById("lightbox-next");
+			const counter = document.getElementById("lightbox-counter");
+			const spinner = document.getElementById("lightbox-spinner");
 
-        const openLightbox = (index: number) => {
-          currentIndex = index;
-          updateLightbox();
-          lightbox.classList.remove('hidden');
-          void lightbox.offsetWidth;
-          lightbox.classList.remove('opacity-0');
-          document.body.style.overflow = 'hidden'; 
-        };
+			if (!galleryItems.length || !lightbox || !track) return;
 
-        const closeLightboxHandler = () => {
-          lightbox.classList.add('opacity-0');
-          setTimeout(() => {
-            lightbox.classList.add('hidden');
-            document.body.style.overflow = '';
-          }, 300);
-        };
+			// El script corre también en astro:page-load: se enlaza una sola vez
+			// para no duplicar listeners ni imágenes dentro del lightbox.
+			if (lightbox.dataset.bound === "true") return;
+			lightbox.dataset.bound = "true";
 
-        const goNext = (e?: Event) => {
-          e?.stopPropagation();
-          openLightbox((currentIndex + 1) % currentImages.length);
-        };
-        
-        const goPrev = (e?: Event) => {
-          e?.stopPropagation();
-          openLightbox((currentIndex - 1 + currentImages.length) % currentImages.length);
-        };
+			const images: string[] = [];
+			galleryItems.forEach((item) => {
+				// La miniatura tiene srcset: el lightbox usa la variante grande
+				// declarada en data-full y cae al src de la miniatura si no existe.
+				const full = item.dataset.full;
+				const img = item.querySelector("img");
+				const url = full ?? img?.src;
+				if (url) images.push(url);
+			});
 
-        // Asignar nuevos eventos
-        galleryItems.forEach((btn, idx) => {
-          // Remover eventos previos clonando los botones no es necesario porque si pasamos de página
-          // el DOM es nuevo.
-          btn.addEventListener('click', () => openLightbox(idx));
-        });
+			if (!images.length) return;
 
-        closeBtn?.addEventListener('click', (e) => { e.stopPropagation(); closeLightboxHandler(); });
-        nextBtn?.addEventListener('click', goNext);
-        prevBtn?.addEventListener('click', goPrev);
-        
-        lightbox.addEventListener('click', (e) => {
-          if (e.target === lightbox || e.target === lightboxTrack || e.target === newLightboxImg) {
-            closeLightboxHandler();
-          }
-        });
+			// La imagen se crea en JS: el HTML queda sin etiquetas img sin src.
+			const lightboxImg = new Image();
+			lightboxImg.alt = "Imagen ampliada del proyecto";
+			lightboxImg.className =
+				"max-h-full max-w-full select-none rounded-sm object-contain opacity-0 shadow-panel transition-opacity duration-300";
+			track.appendChild(lightboxImg);
 
-        document.addEventListener('keydown', (e) => {
-          if (lightbox.classList.contains('hidden')) return;
-          if (e.key === 'Escape') closeLightboxHandler();
-          if (e.key === 'ArrowRight') goNext();
-          if (e.key === 'ArrowLeft') goPrev();
-        });
-      }
-    };
+			lightboxImg.addEventListener("load", () => {
+				spinner?.classList.add("hidden");
+				spinner?.classList.remove("flex");
+				lightboxImg.classList.remove("opacity-0");
+			});
 
-    // Inicializar al cargar el script
-    setupLightbox();
-    // Re-ejecutar si Astro usa View Transitions en cliente
-    document.addEventListener('astro:page-load', setupLightbox);
-  </script>
+			let currentIndex = 0;
 
-  <Footer />
+			const show = (index: number) => {
+				currentIndex = index;
+				spinner?.classList.remove("hidden");
+				spinner?.classList.add("flex");
+				lightboxImg.classList.add("opacity-0");
+				lightboxImg.src = images[currentIndex];
+				if (counter) {
+					counter.textContent = `${currentIndex + 1} / ${images.length}`;
+				}
+			};
+
+			const open = (index: number) => {
+				show(index);
+				lightbox.classList.remove("hidden");
+				void lightbox.offsetWidth;
+				lightbox.classList.remove("opacity-0");
+				document.body.style.overflow = "hidden";
+				closeBtn?.focus();
+			};
+
+			const close = () => {
+				lightbox.classList.add("opacity-0");
+				setTimeout(() => {
+					lightbox.classList.add("hidden");
+					document.body.style.overflow = "";
+				}, 300);
+			};
+
+			const goNext = () => open((currentIndex + 1) % images.length);
+			const goPrev = () => open((currentIndex - 1 + images.length) % images.length);
+
+			galleryItems.forEach((btn, idx) => {
+				btn.addEventListener("click", () => open(idx));
+			});
+
+			closeBtn?.addEventListener("click", close);
+			nextBtn?.addEventListener("click", goNext);
+			prevBtn?.addEventListener("click", goPrev);
+
+			lightbox.addEventListener("click", (e) => {
+				if (e.target === lightbox || e.target === track) close();
+			});
+
+			document.addEventListener("keydown", (e) => {
+				if (lightbox.classList.contains("hidden")) return;
+				if (e.key === "Escape") close();
+				if (e.key === "ArrowRight") goNext();
+				if (e.key === "ArrowLeft") goPrev();
+			});
+		}
+
+		setupLightbox();
+		document.addEventListener("astro:page-load", setupLightbox);
+	</script>
+
+	<Footer />
 </Layout>

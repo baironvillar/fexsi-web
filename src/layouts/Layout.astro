@@ -4,78 +4,93 @@ import "../styles/global.css";
 
 interface Props {
 	title?: string;
+	description?: string;
 }
 
-const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
-	Astro.props;
+const {
+	title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia",
+	description = "Fexsi SpA - Soluciones metalúrgicas de excelencia en Antofagasta. Maestranza, calderería y obras civiles para la gran minería.",
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://fexsi.cl");
 ---
 
 <!doctype html>
 <html lang="es">
 	<head>
 		<meta charset="UTF-8" />
-		<meta
-			name="description"
-			content="Fexsi SpA - Soluciones Metalúrgicas de Excelencia en Antofagasta. Maestranza, Calderería y Obras Civiles para la Gran Minería."
-		/>
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="apple-touch-icon" href="/favicon.png" />
+		<link rel="canonical" href={canonical} />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="theme-color" content="#0b1116" />
+		<meta name="description" content={description} />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Fexsi SpA" />
+		<meta property="og:locale" content="es_CL" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content="/images/logo-fexsi.webp" />
+		<meta name="twitter:card" content="summary" />
+
 		<title>{title}</title>
 		<ClientRouter />
 
-		<!-- Google Fonts: Inter -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chivo:wght@500;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
 			rel="stylesheet"
 		/>
+
+		<script is:inline>
+			document.documentElement.classList.add("js");
+		</script>
 	</head>
-	<body
-		class="font-sans antialiased text-slate-800 bg-slate-50 min-h-screen flex flex-col selection:bg-orange-500 selection:text-white overflow-x-hidden relative"
-	>
-		<!-- Background fijo para la parte blanca -->
-		<div class="fixed inset-0 z-[-1] pointer-events-none">
-			<img
-				src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop&fm=webp"
-				alt="Fondo Industrial"
-				class="w-full h-full object-cover opacity-[0.08] grayscale"
-			/>
+
+	<body class="bg-steel-50 text-steel-600 font-sans antialiased min-h-screen flex flex-col relative overflow-x-hidden">
+		<!-- Textura de plano técnico (CSS, no imagen raster enterrada) -->
+		<div
+			class="fixed inset-0 z-[-1] pointer-events-none blueprint-grid opacity-60 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]"
+			aria-hidden="true"
+		>
 		</div>
 
 		<slot />
 
 		<script>
 			function initScrollReveal() {
+				const targets = document.querySelectorAll(
+					".reveal, .reveal-left, .reveal-right",
+				);
+
+				if (!targets.length) return;
+
 				const observer = new IntersectionObserver(
 					(entries) => {
 						entries.forEach((entry) => {
 							if (entry.isIntersecting) {
-								entry.target.classList.add("active");
+								entry.target.classList.add("is-active");
+								observer.unobserve(entry.target);
 							}
 						});
 					},
-					{ threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+					{ threshold: 0.12, rootMargin: "0px 0px -60px 0px" },
 				);
 
-				document
-					.querySelectorAll(".reveal, .reveal-left, .reveal-right")
-					.forEach((el) => {
-						observer.observe(el);
-					});
+				targets.forEach((el) => {
+					observer.observe(el);
+				});
 			}
 
-			// Ejecutar inicialización
-			initScrollReveal();
-
-			// Manejar smooth scroll manualmente para evitar conflictos con View Transitions al recargar o volver
 			function initSmoothScroll() {
 				document
 					.querySelectorAll('a[href^="/#"], a[href^="#"]')
 					.forEach((anchor) => {
-						// Prevenir que se vuelva a agregar el listener si Astro vuelve a ejecutar este script
 						anchor.removeEventListener("click", handleSmoothScroll);
 						anchor.addEventListener("click", handleSmoothScroll);
 					});
@@ -83,26 +98,68 @@ const { title = "Fexsi SpA | Soluciones Metalúrgicas de Excelencia" } =
 
 			function handleSmoothScroll(this: HTMLElement, e: Event) {
 				const target = e.currentTarget as HTMLAnchorElement | null;
-				if (!target || !target.href) return;
+				if (!target?.href) return;
 
 				const targetUrl = new URL(target.href, window.location.origin);
 				if (targetUrl.pathname === window.location.pathname && targetUrl.hash) {
-					e.preventDefault();
 					const targetElement = document.querySelector(targetUrl.hash);
-					if (targetElement) {
-						targetElement.scrollIntoView({ behavior: "smooth" });
-						history.pushState(null, "", targetUrl.hash);
-					}
+					if (!targetElement) return;
+
+					e.preventDefault();
+					targetElement.scrollIntoView({
+						behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+							.matches
+							? "auto"
+							: "smooth",
+						block: "start",
+					});
+					history.pushState(null, "", targetUrl.hash);
 				}
 			}
 
-			initSmoothScroll();
+			function initScrollSpy() {
+				const sections = document.querySelectorAll<HTMLElement>(
+					"main section[id]",
+				);
+				const links = document.querySelectorAll<HTMLAnchorElement>(
+					'header nav a[href^="/#"]',
+				);
 
-			// Re-ejecutar cuando naveguemos vía View Transitions / ClientRouter
-			document.addEventListener("astro:page-load", () => {
+				if (!sections.length || !links.length) return;
+
+				const observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (!entry.isIntersecting) return;
+							const id = `#${entry.target.id}`;
+							links.forEach((link) => {
+									const active = link.hash === id; // `link.hash` normaliza "/#servicios" y "#servicios"
+									if (active) {
+										link.setAttribute("aria-current", "true");
+										link.dataset.active = "true";
+									} else {
+										link.removeAttribute("aria-current");
+										delete link.dataset.active;
+									}
+								});
+							});
+						},
+					{ rootMargin: "-45% 0px -50% 0px" },
+				);
+
+				sections.forEach((section) => {
+					observer.observe(section);
+				});
+			}
+
+			function initPage() {
 				initScrollReveal();
 				initSmoothScroll();
-			});
+				initScrollSpy();
+			}
+
+			initPage();
+			document.addEventListener("astro:page-load", initPage);
 		</script>
 	</body>
 </html>

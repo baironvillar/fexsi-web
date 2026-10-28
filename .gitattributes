@@ -1,0 +1,10 @@
+# Line endings consistentes: LF en el repositorio y en el working tree.
+# Necesario porque Biome formatea con `lineEnding: "lf"` y el equipo trabaja
+# en Windows, Linux y macOS.
+* text=auto eol=lf
+
+# Archivos que no son texto
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

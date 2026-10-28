@@ -1,0 +1,7 @@
+{
+	"detector": {
+		"ignoreRules": ["cramped-padding"],
+		"ignoreFiles": [],
+		"ignoreValues": []
+	}
+}
