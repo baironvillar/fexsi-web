@@ -87,6 +87,21 @@ framework y el detector las marca como sobreusada.
   - La instantánea vieja de los grupos con nombre se oculta: la ficha y la portada recortan la
     misma foto de forma distinta y, de verse las dos, la imagen aparece duplicada.
 
+## Imágenes y video
+
+- Las fotos son contenido, no decoración: cada una lleva texto alternativo descriptivo y una
+  ficha de proyecto las muestra en galería con lightbox.
+- El pipeline sirve **webp con `srcset`**: el navegador baja la variante que corresponde al ancho
+  real en pantalla en vez de un JPEG de 300 kB. Las miniaturas de galería y la imagen del lightbox
+  son la misma foto en dos anchos, no dos archivos.
+- La imagen nunca se recorta en el servidor: se conserva la proporción original y el encuadre lo
+  decide `object-cover`. Así el server y el cliente ven el mismo recorte y la transición de vista
+  entre la portada y la ficha no "salta".
+- El favicon sale del logo real (PNG + ICO de 16/32/48 px), no de un SVG genérico: la pestaña es
+  parte de la marca.
+- Los videos de proceso llevan subtítulos (transcripción de la voz real) y una pista de descripción
+  separada, porque el audio de un taller no se entiende solo.
+
 ## Accesibilidad
 
 - Contraste WCAG AA como mínimo: 4.5:1 en texto normal, 3:1 en texto grande.
@@ -101,9 +116,12 @@ framework y el detector las marca como sobreusada.
 ```bash
 bun run check          # Biome (lint + formato) y astro check (tipos)
 npx impeccable detect src/   # pre-chequeo rápido
-npx impeccable detect dist/  # auditoría completa sobre el HTML compilado
+npx impeccable detect dist/index.html  # auditoría completa sobre el HTML compilado
 bun run verify         # comportamiento real en navegador (menú, formulario, lightbox)
 ```
+
+`npx impeccable detect dist/` sobre la carpeta solo escanea CSS y JS: hay que apuntar al HTML
+compilado, una página por vez, para que corran las reglas de elemento.
 
 Biome no formatea los `.astro` (su formateador HTML es experimental y deforma el marcado de
 Astro), pero sí los revisa con lint. El formato de los `.astro` es manual y sigue las reglas de

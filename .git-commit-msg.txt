@@ -1,0 +1,13 @@
+feat: agrega favicon de marca e integra las fotos reales de proyectos
+
+- Favicon generado desde el logo real (PNG 180/32 px + ICO 16/32/48 px) con
+  scripts/generate-favicon.mjs; se elimina el favicon.svg de Astro
+- 38 fotos clasificadas por proyecto y movidas a src/assets/projects/<slug>/
+- Nuevo src/lib/images.ts: convierte a webp y arma srcset sin recortar la
+  imagen, para que el recorte lo siga decidiendo el CSS (object-cover)
+- La portada de la home y la de cada ficha usan la foto optimizada; el
+  transition:name sigue funcionando porque se renderiza un <img> propio
+- Galería en las fichas con texto alternativo real y descriptivo por foto
+- Video de proceso con pistas de subtítulos y de descripción (WebVTT)
+- Schema: gallery pasa a lista de { image, alt }; un video exige sus pistas
+- AGENTS.md y DESIGN.md actualizados con el contrato de imágenes y video

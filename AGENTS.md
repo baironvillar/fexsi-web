@@ -14,7 +14,7 @@ El proyecto usa **Bun** como gestor de paquetes y runtime de scripts.
 - Chequeo de tipos de los `.astro`: `bun run typecheck`
 - Todo junto: `bun run check`
 - Verificación funcional en navegador: `bun run verify` (con el sitio servido)
-- Auditoría de diseño: `npx impeccable detect dist/` (HTML compilado, reglas completas)
+- Auditoría de diseño: `npx impeccable detect dist/index.html` (HTML compilado, reglas completas)
 
 > El lockfile es `bun.lock`. No reintroducir `pnpm-lock.yaml` ni `pnpm-workspace.yaml`.
 > Bun no reporta scripts de instalación sin confianza en este proyecto
@@ -26,9 +26,13 @@ El proyecto usa **Bun** como gestor de paquetes y runtime de scripts.
 - `src/components/` — un componente por sección: `Header`, `Hero`, `Services`, `About`, `Projects`, `Contact`, `Footer`
 - `src/layouts/Layout.astro` — shell HTML: `<head>`, fuentes, `<ClientRouter />`, scripts globales
 - `src/content/projects/*.md` — colección `projects`; el schema vive en `src/content.config.ts`
+- `src/assets/projects/<slug>/` — fotos originales de cada proyecto (fuente de verdad)
+- `src/lib/images.ts` — helper `optimizarFoto()`: webp + `srcset` para las fotos
 - `src/styles/global.css` — Tailwind v4 + tokens `@theme` + animaciones de scroll-reveal
-- `public/` — estáticos (`favicon.svg`, `public/images/logo-fexsi.webp`)
+- `public/` — estáticos (`favicon.png`, `favicon-32.png`, `favicon.ico`, `public/images/logo-fexsi.webp`,
+  `public/projects/<slug>/` para videos y pistas WebVTT)
 - `scripts/verify-ui.mjs` — verificación funcional en navegador real (CDP, sin dependencias)
+- `scripts/generate-favicon.mjs` — regenera los favicons desde `public/images/logo-fexsi.webp`
 - `biome.jsonc` — configuración de Biome (lint + formato)
 - `DESIGN.md` — sistema de diseño: por qué de cada decisión, no solo qué valor tiene
 
@@ -58,6 +62,31 @@ Biome se ocupa del lint y del formato de JS, TS, JSON, CSS y Markdown. La config
   archivos `.astro`.
 
 
+## Imágenes y video
+
+Las fotos **no** van en `public/`: viven en `src/assets/projects/<slug>/` y entran al build por el
+helper `image()` del schema, que las resuelve a `ImageMetadata` y permite que Astro las sirva en
+webp con `srcset`.
+- Para renderizar una foto se usa `optimizarFoto()` de `src/lib/images.ts`, no `<Image>` de
+  `astro:assets`: el componente `Image` no reenvía `transition:name` al `<img>`, y la transición de
+  vista de la portada del proyecto depende de ese atributo.
+- `optimizarFoto()` recorta la lista de anchos al ancho real del archivo (nunca amplía) y **no
+  recorta la imagen**: la proporción original se conserva y el encuadre final lo decide el CSS
+  (`object-cover`).
+- El `src` que devuelve `optimizarFoto()` es siempre la variante más grande; esa URL es la que
+  usa el lightbox (va en `data-full` de cada miniatura).
+- Cada foto necesita texto alternativo real y descriptivo. En la galería el schema exige el par
+  `{ image, alt }`; no se accepts "Fotografía 3 del proyecto".
+- El favicon se genera desde el logo real: `node scripts/generate-favicon.mjs` produce
+  `public/favicon.png`, `public/favicon-32.png` y `public/favicon.ico`. No se versiona un
+  `favicon.svg` de Astro.
+
+Los videos de proceso se guardan en `public/projects/<slug>/` (son binarios grandes, no pasan por
+el pipeline de imágenes) y el schema **exige** sus dos pistas WebVTT (`videoCaptions` y
+`videoDescriptions`): sin subtítulos un video no es accesible y Biome (`useMediaCaption`) lo
+rechaza. Los `<track>` van como hijos directos de `<video>`: dentro de una expresión `{cond && ...}`
+el analizador no los ve y la regla vuelve a fallar.
+
 ## Paleta y tokens
 
 Todos los colores salen de `@theme` en `src/styles/global.css`. La paleta por defecto de Tailwind
@@ -78,9 +107,12 @@ El proyecto usa **Impeccable** como detector de anti-patrones. Antes de tocar UI
 
 ```bash
 npx impeccable detect src/     # rápido, reglas por regex sobre .astro
-npx impeccable detect dist/    # completo, requiere build previo
+npx impeccable detect dist/index.html   # completo, sobre el HTML compilado
 npx impeccable detect http://localhost:4321/   # completo, sobre el sitio renderizado
 ```
+
+Ojo: `npx impeccable detect dist/` (la carpeta) solo escanea `.css` y `.js` y **no** corre las reglas
+de elemento. Para la revisión completa hay que pasarle cada HTML compilado, uno por uno.
 
 `.impeccable/config.json` ignora `cramped-padding`: el motor CSS del detector (jsdom) no resuelve
 propiedades lógicas ni `var()`, así que reporta falsos positivos en las utilidades propias
@@ -143,8 +175,12 @@ a la red.
 ## Contenido
 
 - Los proyectos se agregan como `.md` en `src/content/projects/` siguiendo el schema
-  (`title`, `category`, `description`, `coverImage`, `gallery`)
+  (`title`, `category`, `description`, `coverImage` + `coverAlt`, `gallery` = lista de
+  `{ image, alt }`, y opcionalmente `video` + `videoCaptions` + `videoDescriptions`)
 - El schema usa `import { z } from "astro/zod"`: `z` desde `astro:content` está deprecado en
   Astro 6 y `astro check` lo marca
+- Las fotos de un proyecto se guardan en `src/assets/projects/<slug>/`; el path va en el frontmatter
+  relativo a `src/content/projects/`
 - No inventar cifras, certificaciones, clientes ni benchmarks. El copy debe describir
   únicamente trabajo realmente realizado (procesos, normas, tolerancias mencionadas en cada ficha)
+- Tampoco inventar los textos alternativos: se describen las fotos mirando la foto

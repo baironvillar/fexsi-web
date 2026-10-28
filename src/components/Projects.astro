@@ -1,7 +1,22 @@
 ---
 import { getCollection } from "astro:content";
+import { optimizarFoto } from "../lib/images";
 
 const projects = await getCollection("projects");
+
+// La primera ficha ocupa dos columnas: necesita un srcset más ancho.
+const fichas = await Promise.all(
+	projects.map(async (project, index) => {
+		const destacado = index === 0;
+		const foto = await optimizarFoto(project.data.coverImage, {
+			anchos: destacado ? [640, 960, 1280] : [420, 700, 900],
+			sizes: destacado
+				? "(min-width: 1024px) 782px, (min-width: 768px) 92vw, 88vw"
+				: "(min-width: 1024px) 381px, (min-width: 768px) 46vw, 88vw",
+		});
+		return { project, destacado, foto };
+	}),
+);
 ---
 
 <section id="proyectos" class="section-pad relative bg-steel-50">
@@ -48,70 +63,65 @@ const projects = await getCollection("projects");
 
 		<div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
 			{
-				projects.map(
-					(
-						project: import("astro:content").CollectionEntry<"projects">,
-						index: number,
-					) => (
-						<a
-							href={`/proyectos/${project.id}`}
-							class={`group relative block overflow-hidden rounded-sm bg-steel-900 ${
-								index === 0
-									? "md:col-span-2 lg:row-span-2"
-									: ""
-							}`}
-							style={`aspect-ratio: ${index === 0 ? "16 / 11" : "3 / 2"}`}
-						>
-							<img
-								src={project.data.coverImage}
-								alt={project.data.title}
-								transition:name={`proyecto-${project.id}`}
-								loading="lazy"
-								decoding="async"
-								width={index === 0 ? 1200 : 700}
-								height={index === 0 ? 825 : 875}
-								class="h-full w-full object-cover transition-transform duration-700 ease-expo group-hover:scale-105"
-							/>
-							<div
-								transition:name={`proyecto-${project.id}-capa`}
-								class="absolute inset-0 bg-[linear-gradient(to_top,rgba(11,17,22,0.94)_0%,rgba(11,17,22,0.55)_38%,rgba(11,17,22,0.05)_78%)]"
-							/>
+				fichas.map(({ project, destacado, foto }) => (
+					<a
+						href={`/proyectos/${project.id}`}
+						class={`group relative block overflow-hidden rounded-sm bg-steel-900 ${
+							destacado ? "md:col-span-2 lg:row-span-2" : ""
+						}`}
+						style={`aspect-ratio: ${destacado ? "16 / 11" : "3 / 2"}`}
+					>
+						<img
+							src={foto.src}
+							srcset={foto.srcset}
+							sizes={foto.sizes}
+							alt={project.data.coverAlt}
+							transition:name={`proyecto-${project.id}`}
+							loading={foto.loading}
+							decoding={foto.decoding}
+							width={foto.width}
+							height={foto.height}
+							class="h-full w-full object-cover transition-transform duration-700 ease-expo group-hover:scale-105"
+						/>
+						<div
+							transition:name={`proyecto-${project.id}-capa`}
+							class="absolute inset-0 bg-[linear-gradient(to_top,rgba(11,17,22,0.94)_0%,rgba(11,17,22,0.55)_38%,rgba(11,17,22,0.05)_78%)]"
+						/>
 
-							<div class="absolute inset-x-0 bottom-0 p-6 md:p-7">
-								<p class="tech-label text-flame-400">
-									{project.data.category}
-								</p>
-								<h3
-									class={`mt-3 font-display font-bold leading-snug text-white ${
-										index === 0 ? "text-2xl md:text-3xl" : "text-xl"
-									}`}
-								>
-									{project.data.title}
-								</h3>
-								<span class="mt-5 block h-px w-10 origin-left bg-flame-500 transition-all duration-500 ease-expo group-hover:w-24" />
-							</div>
-
-							<span
-								class="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-sm border border-white/25 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-								aria-hidden="true"
+						<div class="absolute inset-x-0 bottom-0 p-6 md:p-7">
+							<p class="tech-label text-flame-400">
+								{project.data.category}
+							</p>
+							<h3
+								class={`mt-3 font-display font-bold leading-snug text-white ${
+									destacado ? "text-2xl md:text-3xl" : "text-xl"
+								}`}
 							>
-								<svg
-									class="h-4 w-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="1.5"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M7 17 17 7M9 7h8v8"
-									/>
-								</svg>
-							</span>
-						</a>
-					),
-				)
+								{project.data.title}
+							</h3>
+							<span class="mt-5 block h-px w-10 origin-left bg-flame-500 transition-all duration-500 ease-expo group-hover:w-24" />
+						</div>
+
+						<span
+							class="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-sm border border-white/25 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+							aria-hidden="true"
+						>
+							<svg
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="1.5"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M7 17 17 7M9 7h8v8"
+								/>
+							</svg>
+						</span>
+					</a>
+				))
 			}
 		</div>
 	</div>

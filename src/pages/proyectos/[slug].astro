@@ -4,6 +4,7 @@ import { getCollection, render } from "astro:content";
 import Footer from "../../components/Footer.astro";
 import Header from "../../components/Header.astro";
 import Layout from "../../layouts/Layout.astro";
+import { optimizarFoto } from "../../lib/images";
 
 export async function getStaticPaths() {
 	const projects = await getCollection("projects");
@@ -19,6 +20,24 @@ type Props = {
 
 const { project } = Astro.props;
 const { Content } = await render(project);
+
+// La portada ocupa todo el ancho: se prioriza y se sirve en varios anchos.
+const portada = await optimizarFoto(project.data.coverImage, {
+	anchos: [800, 1280, 1600],
+	sizes: "100vw",
+	priority: true,
+});
+
+const galeria = await Promise.all(
+	(project.data.gallery ?? []).map(async (item, index) => ({
+		index,
+		alt: item.alt,
+		foto: await optimizarFoto(item.image, {
+			anchos: [360, 720, 1200],
+			sizes: "(min-width: 1024px) 474px, (min-width: 768px) 40vw, (min-width: 640px) 45vw, 85vw",
+		}),
+	})),
+);
 ---
 
 <Layout
@@ -31,11 +50,16 @@ const { Content } = await render(project);
 		<!-- Portada del proyecto -->
 		<div class="relative h-[52vh] min-h-80 overflow-hidden bg-steel-950">
 			<img
-				src={project.data.coverImage}
-				alt={project.data.title}
+				src={portada.src}
+				srcset={portada.srcset}
+				sizes={portada.sizes}
+				alt={project.data.coverAlt}
 				transition:name={`proyecto-${project.id}`}
-				fetchpriority="high"
-				decoding="async"
+				loading={portada.loading}
+				decoding={portada.decoding}
+				fetchpriority={portada.fetchpriority}
+				width={portada.width}
+				height={portada.height}
 				class="h-full w-full object-cover"
 			/>
 			<div
@@ -120,24 +144,29 @@ const { Content } = await render(project);
 
 			<!-- Galería -->
 			{
-				project.data.gallery && project.data.gallery.length > 0 && (
+				galeria.length > 0 && (
 					<section class="mt-20 border-t border-steel-200 pt-12 md:mt-24">
 						<h2 class="font-display text-2xl font-bold tracking-[-0.02em] text-steel-900 md:text-3xl">
 							Galería del proyecto
 						</h2>
 						<div class="hide-scrollbar mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
-							{project.data.gallery.map((image: string, index: number) => (
+							{galeria.map(({ foto, alt, index }) => (
 								<button
 									type="button"
 									data-index={index}
+									data-full={foto.src}
 									class="group relative aspect-video w-[85%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-sm bg-steel-200 shadow-hairline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 sm:w-[45%] md:w-[40%]"
 									aria-label={`Ampliar foto ${index + 1} de ${project.data.title}`}
 								>
 									<img
-										src={image}
-										alt={`Fotografía ${index + 1} del proyecto ${project.data.title}`}
-										loading="lazy"
-										decoding="async"
+										src={foto.src}
+										srcset={foto.srcset}
+										sizes={foto.sizes}
+										alt={alt}
+										loading={foto.loading}
+										decoding={foto.decoding}
+										width={foto.width}
+										height={foto.height}
 										class="pointer-events-none h-full w-full object-cover transition-transform duration-500 ease-expo group-hover:scale-105"
 									/>
 									<span class="absolute inset-0 flex items-center justify-center bg-steel-950/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -159,6 +188,51 @@ const { Content } = await render(project);
 								</button>
 							))}
 						</div>
+					</section>
+				)
+			}
+
+			<!-- Video de proceso -->
+			{
+				project.data.video && (
+					<section class="mt-20 border-t border-steel-200 pt-12 md:mt-24">
+						<h2 class="font-display text-2xl font-bold tracking-[-0.02em] text-steel-900 md:text-3xl">
+							Proceso en taller
+						</h2>
+						<figure class="mt-8">
+							<video
+								class="mx-auto max-h-[70vh] w-auto max-w-full rounded-sm bg-steel-950 object-contain shadow-hairline"
+								controls
+								preload="metadata"
+								playsinline
+							>
+								<source src={project.data.video} type="video/mp4" />
+								<track
+									kind="captions"
+									src={project.data.videoCaptions}
+									srclang="es"
+									label="Español"
+									default
+								/>
+								<track
+									kind="descriptions"
+									src={project.data.videoDescriptions}
+									srclang="es"
+									label="Descripción en español"
+								/>
+								<p class="p-6 text-sm text-steel-200">
+									Tu navegador no puede reproducir este video.{" "}
+									<a class="link-underline" href={project.data.video} download>
+										Descárgalo aquí
+									</a>
+									.
+								</p>
+							</video>
+							<figcaption class="mx-auto mt-4 max-w-sm text-sm text-steel-600">
+								Cesta filtrante de acero inoxidable con chapa perforada, probada dentro de
+								su carcasa.
+							</figcaption>
+						</figure>
 					</section>
 				)
 			}
@@ -278,8 +352,12 @@ const { Content } = await render(project);
 
 			const images: string[] = [];
 			galleryItems.forEach((item) => {
+				// La miniatura tiene srcset: el lightbox usa la variante grande
+				// declarada en data-full y cae al src de la miniatura si no existe.
+				const full = item.dataset.full;
 				const img = item.querySelector("img");
-				if (img?.src) images.push(img.src);
+				const url = full ?? img?.src;
+				if (url) images.push(url);
 			});
 
 			if (!images.length) return;
