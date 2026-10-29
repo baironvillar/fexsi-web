@@ -154,16 +154,6 @@
    Utilidades propias
    ========================================================================== */
 
-/* Carrusel horizontal sin barra de scroll visible */
-.hide-scrollbar {
-	-ms-overflow-style: none;
-	scrollbar-width: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-	display: none;
-}
-
 /* Contenedor de ancho máximo con canalón consistente.
    Se usan propiedades físicas (padding-left/right) en vez de las lógicas
    (padding-inline): universalmente soportadas y legibles por cualquier

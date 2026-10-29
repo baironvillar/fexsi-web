@@ -91,6 +91,11 @@ framework y el detector las marca como sobreusada.
 
 - Las fotos son contenido, no decoración: cada una lleva texto alternativo descriptivo y una
   ficha de proyecto las muestra en galería con lightbox.
+- La galería es una **masonry de columnas CSS** (`column-count`), no un carrusel. Un carrusel
+  horizontal sin barra de scroll escondía 17 de las 20 fotos de una ficha: el visitante veía
+  tres y no había forma de saber que faltaban. En columnas se ven todas, de una vez.
+- Cada foto conserva su **proporción original**: la grilla no recorta. 28 de las 38 fotos son
+  verticales (celulares 9:16 y 3:4) y un recorte 16:9 habría cortado la mitad de cada una.
 - El pipeline sirve **webp con `srcset`**: el navegador baja la variante que corresponde al ancho
   real en pantalla en vez de un JPEG de 300 kB. Las miniaturas de galería y la imagen del lightbox
   son la misma foto en dos anchos, no dos archivos.

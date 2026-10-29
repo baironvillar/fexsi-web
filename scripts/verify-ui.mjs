@@ -12,6 +12,7 @@
  *   D3. Formulario: validación antes de enviar (no sale nada a la red)
  *   D4. Formulario: payload con los nombres reservados de Web3Forms
  *   E. Lightbox de galería
+ *   E2. Galería: todas las fotos visibles (no carrusel)
  *   F. Menú móvil (390x844): apertura, cierre, Escape, clic en enlace
  *   G. Menú móvil sin JavaScript: la navegación sigue disponible
  *
@@ -561,6 +562,111 @@ try {
 		assert("el scroll del body se bloquea al abrir", lb.openState?.bodyOverflow === "hidden");
 		assert("Escape cierra el lightbox", lb.closedState?.lightboxHidden === true);
 		assert("el scroll del body se restaura", lb.closedState?.bodyOverflow === "");
+		ws.close();
+	}
+
+	// ---------- E2. La galería muestra todas las fotos ----------
+	console.log("\n== E2. Galería: todas las fotos visibles (1280x900) ==\n");
+	{
+		const { cdp, ws } = await openTab(`${base}/proyectos/montaje-industrial/`);
+		const gal = await cdp.evaluate(`(() => {
+      const thumbs = [...document.querySelectorAll('.group[data-index]')];
+      const cont = thumbs[0] ? thumbs[0].parentElement : null;
+      if (!cont) return { error: 'no hay contenedor de galería' };
+      const cs = getComputedStyle(cont);
+      const contRect = cont.getBoundingClientRect();
+      // Una foto queda "escondida" si su caja se sale del contenedor: eso es
+      // lo que pasaba con el carrusel horizontal (solo se veían 3 de 21).
+      const fuera = thumbs.filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.right > contRect.right + 1 || r.left < contRect.left - 1;
+      }).length;
+      const sinAltura = thumbs.filter((t) => t.getBoundingClientRect().height < 40).length;
+      const titulo = document.querySelector('h2 + p');
+      return {
+        thumbs: thumbs.length,
+        overflowX: cont.scrollWidth - cont.clientWidth,
+        columnCount: cs.columnCount,
+        fuera,
+        sinAltura,
+        contador: titulo ? titulo.textContent.replace(/\\s+/g, ' ').trim() : '',
+        distintos: new Set(thumbs.map((t) => t.dataset.full)).size,
+      };
+    })()`);
+		console.log("galería:", JSON.stringify(gal));
+		assert(
+			"la galería trae todas las fotos del proyecto",
+			gal.thumbs === 20 && gal.distintos === 20,
+			`miniaturas=${gal.thumbs} distintas=${gal.distintos}`,
+		);
+		assert(
+			"ninguna foto queda escondida fuera del contenedor",
+			gal.fuera === 0,
+			`fuera=${gal.fuera}`,
+		);
+		assert(
+			"la galería no es un carrusel horizontal",
+			gal.overflowX <= 1,
+			`desborde=${gal.overflowX}px columnas=${gal.columnCount}`,
+		);
+		assert(
+			"todas las miniaturas tienen altura visible",
+			gal.sinAltura === 0,
+			`sin altura=${gal.sinAltura}`,
+		);
+		assert(
+			"el encabezado declara cuántas fotos hay",
+			gal.contador.includes("20"),
+			`contador="${gal.contador}"`,
+		);
+		ws.close();
+	}
+
+	// ---------- E3. La galería en móvil ----------
+	console.log("\n== E3. Galería en móvil (390x844) ==\n");
+	{
+		const { cdp, ws } = await openTab(`${base}/proyectos/montaje-industrial/`, {
+			width: 390,
+			height: 844,
+		});
+		const gal = await cdp.evaluate(`(() => {
+      const thumbs = [...document.querySelectorAll('.group[data-index]')];
+      const cont = thumbs[0] ? thumbs[0].parentElement : null;
+      if (!cont) return { error: 'no hay contenedor de galería' };
+      const cs = getComputedStyle(cont);
+      const contRect = cont.getBoundingClientRect();
+      const fuera = thumbs.filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.right > contRect.right + 1 || r.left < contRect.left - 1;
+      }).length;
+      const anchos = thumbs.map((t) => Math.round(t.getBoundingClientRect().width));
+      return {
+        thumbs: thumbs.length,
+        columnCount: cs.columnCount,
+        overflowX: cont.scrollWidth - cont.clientWidth,
+        fuera,
+        anchoMin: Math.min(...anchos),
+        anchoMax: Math.max(...anchos),
+        altoMin: Math.min(...thumbs.map((t) => Math.round(t.getBoundingClientRect().height))),
+      };
+    })()`);
+		console.log("galería móvil:", JSON.stringify(gal));
+		assert("en móvil se ven las 20 fotos", gal.thumbs === 20, `miniaturas=${gal.thumbs}`);
+		assert(
+			"en móvil la galería usa dos columnas",
+			gal.columnCount === "2",
+			`columnas=${gal.columnCount}`,
+		);
+		assert(
+			"en móvil no hay desbordes horizontales",
+			gal.overflowX <= 1 && gal.fuera === 0,
+			`desborde=${gal.overflowX}px fuera=${gal.fuera}`,
+		);
+		assert(
+			"en móvil las miniaturas tienen ancho legible",
+			gal.anchoMin >= 120,
+			`ancho=${gal.anchoMin}-${gal.anchoMax}px`,
+		);
 		ws.close();
 	}
 

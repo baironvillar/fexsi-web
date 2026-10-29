@@ -34,7 +34,7 @@ const galeria = await Promise.all(
 		alt: item.alt,
 		foto: await optimizarFoto(item.image, {
 			anchos: [360, 720, 1200],
-			sizes: "(min-width: 1024px) 474px, (min-width: 768px) 40vw, (min-width: 640px) 45vw, 85vw",
+			sizes: "(min-width: 1024px) 280px, (min-width: 768px) 33vw, 50vw",
 		}),
 	})),
 );
@@ -149,13 +149,17 @@ const galeria = await Promise.all(
 						<h2 class="font-display text-2xl font-bold tracking-[-0.02em] text-steel-900 md:text-3xl">
 							Galería del proyecto
 						</h2>
-						<div class="hide-scrollbar mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+						<p class="mt-2 text-sm text-steel-600">
+							{galeria.length} {galeria.length === 1 ? "fotografía" : "fotografías"} del
+							proyecto
+						</p>
+						<div class="mt-8 gap-x-4 [column-count:2] md:[column-count:3] lg:[column-count:4]">
 							{galeria.map(({ foto, alt, index }) => (
 								<button
 									type="button"
 									data-index={index}
 									data-full={foto.src}
-									class="group relative aspect-video w-[85%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-sm bg-steel-200 shadow-hairline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 sm:w-[45%] md:w-[40%]"
+									class="group relative mb-4 block w-full break-inside-avoid cursor-pointer overflow-hidden rounded-sm bg-steel-200 shadow-hairline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600"
 									aria-label={`Ampliar foto ${index + 1} de ${project.data.title}`}
 								>
 									<img
@@ -167,7 +171,7 @@ const galeria = await Promise.all(
 										decoding={foto.decoding}
 										width={foto.width}
 										height={foto.height}
-										class="pointer-events-none h-full w-full object-cover transition-transform duration-500 ease-expo group-hover:scale-105"
+										class="pointer-events-none h-auto w-full transition-transform duration-500 ease-expo group-hover:scale-105"
 									/>
 									<span class="absolute inset-0 flex items-center justify-center bg-steel-950/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
 										<svg
@@ -351,6 +355,7 @@ const galeria = await Promise.all(
 			lightbox.dataset.bound = "true";
 
 			const images: string[] = [];
+			const alts: string[] = [];
 			galleryItems.forEach((item) => {
 				// La miniatura tiene srcset: el lightbox usa la variante grande
 				// declarada en data-full y cae al src de la miniatura si no existe.
@@ -358,13 +363,14 @@ const galeria = await Promise.all(
 				const img = item.querySelector("img");
 				const url = full ?? img?.src;
 				if (url) images.push(url);
+				alts.push(img?.alt ?? "Imagen ampliada del proyecto");
 			});
 
 			if (!images.length) return;
 
 			// La imagen se crea en JS: el HTML queda sin etiquetas img sin src.
 			const lightboxImg = new Image();
-			lightboxImg.alt = "Imagen ampliada del proyecto";
+			lightboxImg.alt = alts[0];
 			lightboxImg.className =
 				"max-h-full max-w-full select-none rounded-sm object-contain opacity-0 shadow-panel transition-opacity duration-300";
 			track.appendChild(lightboxImg);
@@ -382,6 +388,7 @@ const galeria = await Promise.all(
 				spinner?.classList.remove("hidden");
 				spinner?.classList.add("flex");
 				lightboxImg.classList.add("opacity-0");
+				lightboxImg.alt = alts[currentIndex] ?? "Imagen ampliada del proyecto";
 				lightboxImg.src = images[currentIndex];
 				if (counter) {
 					counter.textContent = `${currentIndex + 1} / ${images.length}`;
